@@ -1,0 +1,1323 @@
+module vyatta-policy-route-v1 {
+	namespace "urn:vyatta.com:mgmt:vyatta-policy-route:1";
+	prefix vyatta-policy-route-v1;
+
+	import vyatta-types-v1 {
+		prefix types;
+	}
+	import vyatta-policy-v1 {
+		prefix policy;
+	}
+	import configd-v1 {
+		prefix configd;
+	}
+	import vyatta-protocols-interface-validation-v1 {
+		prefix if-validation;
+	}
+
+	organization "AT&T, Inc.";
+	contact
+		"AT&T
+		 Postal: 208 S. Akard Street
+		 Dallas, TX 75202
+		 Web: www.att.com";
+
+	description
+		"Copyright (c) 2017-2019 AT&T Intellectual Property
+		 All rights reserved.
+
+		 Copyright (c) 2014-2017 by Brocade Communications Systems, Inc.
+		 All rights reserved.
+
+		 Redistribution and use in source and binary forms, with or
+		 without modification, are permitted provided that the following
+		 conditions are met:
+
+		 1. Redistributions of source code must retain the above copyright
+			notice, this list of conditions and the following disclaimer.
+		 2. Redistributions in binary form must reproduce the above
+			copyright notice, this list of conditions and the following
+			disclaimer in the documentation and/or other materials provided
+			with the distribution.
+		 3. Neither the name of the copyright holder nor the names of its
+			contributors may be used to endorse or promote products derived
+			from this software without specific prior written permission.
+
+		 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		 COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		 POSSIBILITY OF SUCH DAMAGE.
+
+		 SPDX-License-Identifier: BSD-3-Clause
+
+		 The YANG module package for vyatta-policy-route-v1";
+
+	revision 2018-12-20 {
+		description "Removed configd:error-message";
+	}
+	revision 2018-11-22 {
+		description "Correct regex in metric-val typedef";
+	}
+	revision 2018-09-07 {
+		description "Removed configd:allowed script";
+	}
+	revision 2018-02-01 {
+		description
+			"BGP policy, route-map, ACL and prefix-list VCI support.";
+	}
+	revision 2017-12-05 {
+		description
+			"Removed configd prefix-list configuration scripts";
+	}
+	revision 2017-11-01 {
+		description
+			"Add not(*) to fix must statement on non-presence containers";
+	}
+	revision 2017-08-04 {
+		description
+			"Adding Python calls for routing-api";
+	}
+	revision 2017-02-01 {
+		description
+			"Adding validation scripts as a workaround to fix the"+
+			" problem with != construct in XPATH yang statements.";
+	}
+
+	revision 2016-10-20 {
+		description
+			"Added route-map set level command";
+	}
+
+	revision 2016-09-22 {
+		description
+			"Added support for additive extcommunity and delete extcommunity";
+	}
+
+	revision 2016-07-19 {
+		description
+			"Removing as-path-prepend and prepend-as mutual exclusion check"+
+			"Adding back presence statement to destination.";
+	}
+
+	revision 2015-12-04 {
+		description "Convert comp_help extension to description.";
+	}
+	revision 2015-08-06 {
+		description "Initial revision of version 1";
+	}
+
+	typedef metric-val {
+		type union {
+			type string {
+				pattern '[-+]?[0123456789]+' {
+					error-message "Metric must be an integer with an optional +/- prepend. It can be 0..4294967295 or [+/-]1..4294967295";
+				}
+				configd:help "[+/-] Add or subtract metric value";
+			}
+			type uint32 {
+				range 0..4294967295;
+				configd:help "Metric value";
+			}
+		}
+	}
+
+	typedef community-list {
+		type union {
+			type uint32 {
+				range 1..199 {
+					error-message "Community-list must be in range 1 to 199 ";
+				}
+				configd:help "BGP community list number";
+			}
+			type string {
+				pattern '[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*[a-zA-Z]+[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*' {
+					error-message "Community-list can be alphanumeric or number in range 1 to 199";
+				}
+				configd:help "BGP community list Name";
+			}
+		}
+	}
+
+	typedef community-list-std {
+		type union {
+			type uint32 {
+				range 1..99 {
+					error-message "Community-list(standard) must be in range 1 to 99 ";
+				}
+				configd:help "BGP community list (standard) number";
+			}
+			type string {
+				pattern '[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*[a-zA-Z]+[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*' {
+					error-message "Community-list(standard) can be alphanumeric or number in range 1 to 99";
+				}
+				configd:help "BGP community list (standard) Name";
+			}
+		}
+	}
+
+	typedef community-list-exp {
+		type union {
+			type uint32 {
+				range 100..199 {
+					error-message "Community-list(expanded) must be in range 100 to 199 ";
+				}
+				configd:help "BGP community list (expanded) number";
+			}
+			type string {
+				pattern '[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*[a-zA-Z]+[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*' {
+					error-message "Community-list(expanded) can be alphanumeric or number in range 100 to 199";
+				}
+				configd:help "BGP community list (expanded) Name";
+			}
+		}
+	}
+
+	typedef extcommunity-list {
+		type union {
+			type uint32 {
+				range 1..199 {
+					error-message "Extended community-list must be in range 1 to 199 ";
+				}
+				configd:help "BGP Extended community list number";
+			}
+			type string {
+				pattern '[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*[a-zA-Z]+[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*' {
+					error-message "Community-list can be alphanumeric or number in range 1 to 199";
+				}
+				configd:help "BGP Extended community list Name";
+			}
+		}
+	}
+
+	typedef extcommunity-list-std {
+		type union {
+			type uint32 {
+				range 1..99 {
+					error-message "Extended community-list(standard) must be in range 1 to 99 ";
+				}
+				configd:help "BGP Extended community list (standard) number";
+			}
+			type string {
+				pattern '[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*[a-zA-Z]+[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*' {
+					error-message "Extended community-list(standard) can be alphanumeric or number in range 1 to 99";
+				}
+				configd:help "BGP Extended community list (standard) Name";
+			}
+		}
+	}
+
+	typedef extcommunity-list-exp {
+		type union {
+			type uint32 {
+				range 100..199 {
+					error-message "Extended community-list(expanded) must be in range 100 to 199 ";
+				}
+				configd:help "BGP Extended community list (expanded) number";
+			}
+			type string {
+				pattern '[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*[a-zA-Z]+[a-zA-Z0-9~`!@#$%^&*()_+-=|\\;:",./<>?\{\}\[\]]*' {
+					error-message "Extended community-list(expanded) can be alphanumeric or number in range 100 to 199";
+				}
+				configd:help "BGP Extended community list (expanded) Name";
+			}
+		}
+	}
+
+	typedef rmap-community {
+		description
+			"AA:NN         Community Number
+			 internet      Internet
+			 local-as      Do not send outside local AS
+			 no-advertise  Do not advertise to any peer
+			 no-export     Do not export to next AS
+			 none          No community attribute";
+		type string {
+			configd:pattern-help "<AA:NN>";
+			configd:help "Community Number in AA:NN format";
+		}
+	}
+
+	typedef community {
+		description
+			"AA:NN         Community Number
+			 internet      Internet
+			 local-as      Do not send outside local AS
+			 no-advertise  Do not advertise to any peer
+			 no-export     Do not export to next AS";
+		type string {
+			configd:pattern-help "<AA:NN>";
+			configd:help "Community Number in AA:NN format";
+		}
+	}
+
+	typedef isis-level {
+		type enumeration {
+			enum "level-1" {
+				description "IS-IS level-1";
+				configd:help "IS-IS level-1";
+			}
+			enum "level-2" {
+				description "IS-IS level-2";
+				configd:help "IS-IS level-2";
+			}
+			enum "level-1-2" {
+				description "IS-IS level-1-2";
+				configd:help "IS-IS level-1-2";
+			}
+		}
+	}
+
+	grouping community-list-common {
+		leaf description {
+			type string;
+			configd:help "Description for this rule";
+		}
+		leaf action {
+			mandatory true;
+			type enumeration {
+				enum "permit" {
+					configd:help "Permit matching communities";
+				}
+				enum "deny" {
+					configd:help "Deny matching communities";
+				}
+			}
+			configd:help "Action to take on communities matching this rule [REQUIRED]";
+		}
+	}
+
+	grouping community-list-rules-std {
+		leaf description {
+			type string;
+			configd:help "Description for this community list(standard)";
+		}
+
+		list rule {
+			configd:help "create a rule for this BGP community list(standard)";
+			key "tagnode";
+			leaf tagnode {
+				type uint32 {
+					range 1..65535;
+				}
+				configd:help "create a rule for this BGP community list(standard)";
+			}
+
+			uses community-list-common;
+			leaf community {
+				mandatory true;
+				type community {
+					configd:syntax "/opt/vyatta/sbin/vyatta_routing_utils.pl --check-clist-community $VAR(@)";
+				}
+				configd:help "Border Gateway Protocol (BGP) community";
+				configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/community-list/rule/community/configd_allowed.sh";
+			}
+		}
+	}
+
+	grouping community-list-rules-exp {
+		leaf description {
+			type string;
+			configd:help "Description for this community list(expanded)";
+		}
+
+		list rule {
+			configd:help "create a rule for this BGP community list(expanded)";
+			key "tagnode";
+			leaf tagnode {
+				type uint32 {
+					range 1..65535;
+				}
+				configd:help "create a rule for this BGP community list(expanded)";
+			}
+
+			uses community-list-common;
+			leaf regex {
+				mandatory true;
+				type string;
+				configd:help "Regular expression to match against a community list";
+			}
+		}
+	}
+
+	grouping extcommunity-list-rules-std {
+		leaf description {
+			type string;
+			configd:help "Description for this extended community list(standard)";
+		}
+		list rule {
+			configd:help "create a rule for this BGP extended community list(standard)";
+			key "tagnode";
+			leaf tagnode {
+				type uint32 {
+					range 1..65535;
+				}
+				configd:help "create a rule for this BGP extended community list(standard)";
+			}
+
+			uses community-list-common {
+				refine action {
+					must "../rt or ../soo" {
+						error-message " You must specify a community attribute, rt or soo or both! ";
+					}
+				}
+			}
+			leaf rt {
+				type string;
+				configd:help "Route Target extended community in AA:NN or IPAddr:NN format";
+			}
+			leaf soo {
+				type string;
+				configd:help "Site-of-Origin extended community in AA:NN or IPAddr:NN format";
+			}
+		}
+	}
+
+	grouping extcommunity-list-rules-exp {
+		leaf description {
+			type string;
+			configd:help "Description for this extended community list(expanded)";
+		}
+		list rule {
+			configd:help "create a rule for this BGP extended community list(expanded)";
+			key "tagnode";
+			leaf tagnode {
+				type uint32 {
+					range 1..65535;
+				}
+				configd:help "create a rule for this BGP extended community list(expanded)";
+			}
+
+			uses community-list-common;
+			leaf regex {
+				mandatory true;
+				type string;
+				configd:help "Regular expression to match against a extcommunity list";
+			}
+		}
+	}
+
+	grouping ip-access-list-or-prefix-list {
+		leaf access-list {
+			type leafref {
+				path "/policy:policy/route/access-list/tagnode";
+			}
+			configd:help "IP access-list to match";
+		}
+		leaf prefix-list {
+			type leafref {
+				path "/policy:policy/route/prefix-list/tagnode";
+			}
+			must "not(../access-list)" {
+				error-message "You may configure prefix-list/access-list, not both!";
+			}
+			configd:help "IP prefix-list to match";
+		}
+	}
+
+	grouping ipv6-access-list-or-prefix-list {
+		leaf access-list {
+			type leafref {
+				path "/policy:policy/route/access-list6/tagnode";
+			}
+			configd:help "IPv6 access-list6 to match";
+		}
+		leaf prefix-list {
+			type leafref {
+				path "/policy:policy/route/prefix-list6/tagnode";
+			}
+			must "not(../access-list)" {
+				error-message "You may configure prefix-list/access-list, not both!";
+			}
+			configd:help "IPv6 prefix-list to match";
+		}
+	}
+	augment /policy:policy {
+		container route {
+			configd:help "Routing policy";
+			presence "Enables policy route";
+
+			list access-list6 {
+				configd:help "IPv6 access-list filter";
+				key "tagnode";
+				leaf tagnode {
+					type string {
+						pattern '[!-~]{1,64}' {
+							error-message "access-list name must be 64 characters or less";
+						}
+						pattern '[^-].*' {
+							error-message "access-list name cannot start with \"-\"";
+						}
+						pattern '[^\|;&$<>]*' {
+							error-message "access-list name cannot contain shell punctuation";
+						}
+					}
+					configd:help "IPv6 access-list filter";
+				}
+				leaf description {
+					type string;
+					configd:help "Description for this IPv6 access-list";
+				}
+				list rule {
+					configd:help "Rule for this access-list6";
+					key "tagnode";
+					leaf tagnode {
+						type uint32 {
+							range 1..65535;
+						}
+						configd:help "Rule for this access-list6";
+					}
+					leaf description {
+						type string;
+						configd:help "Description for this IPv6 access-list rule";
+					}
+					leaf action {
+						mandatory true;
+						must "(../source)" {
+							error-message "You must specify source";
+						}
+						type enumeration {
+							enum "permit" {
+								configd:help "Permit matching networks";
+							}
+							enum "deny" {
+								configd:help "Deny matching networks";
+							}
+						}
+						configd:help "Action to take on networks matching this rule [REQUIRED]";
+					}
+					container source {
+						configd:help "Source IPv6 network to match";
+						leaf exact-match {
+							type empty;
+							must "(../network)" {
+								error-message "You must specify network to configure exact-match";
+							}
+							configd:help "Exact match of the network prefixes";
+						}
+						leaf any {
+							type empty;
+							must "not(../network)" {
+								error-message "You may only define one filter type. (network|any)";
+							}
+							configd:help "Any IPv6 address to match";
+						}
+						leaf network {
+							type types:ipv6-prefix;
+							configd:help "Network/netmask to match (requires inverse-mask be defined)";
+						}
+					}
+				}
+			}
+			list access-list {
+				configd:help "IP access-list filter";
+				key "tagnode";
+				leaf tagnode {
+					type uint32 {
+						range "1..99 | 100..199 | 1300..1999 | 2000..2699";
+					}
+					configd:help "Access list number must be
+                                                <1-99>\tIP standard access list
+                                                <100-199>\tIP extended access list
+                                                <1300-1999>\tIP standard access list (expanded range)
+                                                <2000-2699>\tIP extended access list (expanded range)";
+				}
+				leaf description {
+					type string;
+					configd:help "Description for this access-list";
+				}
+				list rule {
+					configd:help "Rule for this access-list";
+					key "tagnode";
+					leaf tagnode {
+						type uint32 {
+							range 1..65535;
+						}
+						configd:help "Rule for this access-list";
+					}
+					leaf description {
+						type string;
+						configd:help "Description for this rule";
+					}
+					leaf action {
+						mandatory true;
+						must "(../source)" {
+							error-message "You must specify source";
+						}
+						type enumeration {
+							enum "permit" {
+								configd:help "Permit matching networks";
+							}
+							enum "deny" {
+								configd:help "Deny matching networks";
+							}
+						}
+						configd:help "Action to take on networks matching this rule [REQUIRED]";
+					}
+					container source {
+						configd:help "Source network or address to match";
+						must "not (*) or (../destination) or "
+							+"(../../tagnode >= 1 and ../../tagnode <= 99) or "
+							+"(../../tagnode >= 1300 and ../../tagnode <= 1999)" {
+							error-message "You must configure destination for extended-range(100-199 | 2000-2699)";
+						}
+
+						leaf host {
+							type types:ipv4-address;
+							must "not(../network) and not(../any)" {
+								error-message "You may only define one filter type. (host|network|any)";
+							}
+							configd:help "Single host IP address to match";
+						}
+						leaf inverse-mask {
+							type types:ipv4-address;
+							must "(../network)" {
+								error-message "You must configure network to specify inverse-mask";
+							}
+							configd:help "Network/netmask to match (requires network be defined)";
+						}
+						leaf any {
+							type empty;
+							must "not(../host) and not(../network)" {
+								error-message "You may only define one filter type. (host|network|any)";
+							}
+							configd:help "Any IP address to match";
+						}
+						leaf network {
+							type types:ipv4-address;
+							must "not(../host) and not(../any)" {
+								error-message "You may only define one filter type. (host|network|any)";
+							}
+							must "(../inverse-mask)" {
+								error-message "You must configure inverse-mask for the network";
+							}
+							configd:help "Network/netmask to match (requires inverse-mask be defined)";
+						}
+					}
+					container destination {
+						presence "Enables setting destination for expanded range";
+						must "(((../../tagnode >= '100' and ../../tagnode <= '199') or "
+						     +"(../../tagnode >= '2000' and ../../tagnode <= '2699')) and "
+						     +"(count(*) > 0)) or "
+						     +"(((../../tagnode >= '1' and ../../tagnode <= '99') or "
+						     +"(../../tagnode >= '1300' and ../../tagnode <= '1999')) and "
+						     +"(count(*) = 0))" {
+							error-message "You may specify destination filter for expanded range, <100-199>|<2000-2699>";
+						}
+						configd:help "Destination network or address";
+						leaf host {
+							type types:ipv4-address;
+							must "not(../network) and not(../any)" {
+								error-message "You may only define one filter type. (host|network|any)";
+							}
+							configd:help "Single host IP address to match";
+						}
+						leaf inverse-mask {
+							type types:ipv4-address;
+							must "(../network)" {
+								error-message "You must configure network to specify inverse-mask";
+							}
+							configd:help "Network/netmask to match (requires network be defined)";
+
+						}
+						leaf any {
+							type empty;
+							must "not(../host) and not(../network)" {
+								error-message "You may only define one filter type. (host|network|any)";
+							}
+							configd:help "Any IP address to match";
+						}
+						leaf network {
+							type types:ipv4-address;
+							must "not(../host) and not(../any)" {
+								error-message "You may only define one filter type. (host|network|any)";
+							}
+							must "(../inverse-mask)" {
+								error-message "You must specify inverse-mask for the network";
+							}
+							configd:help "Network/netmask to match (requires inverse-mask be defined)";
+						}
+					}
+				}
+			}
+
+			container community-list {
+				configd:help "Border Gateway Protocol (BGP) community-list filter";
+				list standard {
+					configd:help "Border Gateway Protocol (BGP) community-list(standard) filter";
+					key "tagnode";
+					leaf tagnode {
+						type community-list-std;
+						configd:validate "/opt/vyatta/sbin/vyatta-policy.pl --check-community-list $VAR(@) --comm-list-type expanded";
+					}
+
+					uses community-list-rules-std;
+				}
+
+				list expanded {
+					configd:help "Border Gateway Protocol (BGP) community-list(expanded) filter";
+					key "tagnode";
+					leaf tagnode {
+						type community-list-exp;
+					}
+
+					uses community-list-rules-exp;
+				}
+			}
+
+			container extcommunity-list {
+				configd:help "Border Gateway Protocol (BGP) Extended community-list filter";
+				list standard {
+					configd:help "Border Gateway Protocol (BGP) Extended community-list(standard) filter";
+					key "tagnode";
+					leaf tagnode {
+						type extcommunity-list-std;
+						configd:validate "/opt/vyatta/sbin/vyatta-policy.pl --check-extcommunity-list $VAR(@) --comm-list-type expanded";
+					}
+
+					uses extcommunity-list-rules-std;
+				}
+
+				list expanded {
+					configd:help "Border Gateway Protocol (BGP) Extended community-list(expanded) filter";
+					key "tagnode";
+					leaf tagnode {
+						type extcommunity-list-exp;
+					}
+
+					uses extcommunity-list-rules-exp;
+				}
+			}
+
+			list as-path-list {
+				configd:help "Border Gateway Protocol (BGP) autonomous system path filter";
+				key "tagnode";
+				leaf tagnode {
+					type string {
+						pattern '[-a-zA-Z0-9.]+' {
+							error-message "as-path-list name must be alpha-numeric";
+						}
+					}
+					configd:help "Border Gateway Protocol (BGP) autonomous system path filter";
+				}
+				leaf description {
+					type string;
+					configd:help "Description for this as-path-list";
+				}
+				list rule {
+					configd:help "Rule for this as-path-list";
+					key "tagnode";
+					leaf tagnode {
+						type uint32 {
+							range 1..65535;
+						}
+						configd:help "Rule for this as-path-list";
+					}
+					leaf description {
+						type string;
+						configd:help "Description for this rule";
+					}
+					leaf action {
+						mandatory true;
+						type enumeration {
+							enum "permit" {
+								configd:help "Permit matching as-paths";
+							}
+							enum "deny" {
+								configd:help "Deny matching as-paths";
+							}
+						}
+						configd:help "Action to take on AS paths matching this rule [REQUIRED]";
+					}
+					leaf regex {
+						mandatory true;
+						type string;
+						configd:help "Regular expression to match against an AS path";
+					}
+				}
+			}
+			list route-map {
+				configd:help "IP route-map";
+				key "tagnode";
+				leaf tagnode {
+					type string {
+						pattern '[-a-zA-Z0-9.]+' {
+							error-message "route-map name must be alpha-numeric";
+						}
+					}
+					configd:help "IP route-map";
+				}
+				leaf description {
+					type string;
+					configd:help "Description for this route-map";
+				}
+				list rule {
+					configd:help "Rule for this route-map";
+					key "tagnode";
+					leaf tagnode {
+						type uint32 {
+							range 1..65535;
+						}
+						configd:help "Rule for this route-map";
+					}
+					leaf description {
+						type string;
+						configd:help "Description for this rule";
+					}
+					leaf action {
+						mandatory true;
+						type enumeration {
+							enum "permit" {
+								configd:help "Permit matching prefixes";
+							}
+							enum "deny" {
+								configd:help "Deny matching prefixes";
+							}
+						}
+						configd:help "Action to take on prefixes matching this rule [REQUIRED]";
+					}
+					container set {
+						presence "Enables route-map set";
+						configd:help "Route parameters";
+						leaf tag {
+							type uint32 {
+								range 1..65535;
+							}
+							configd:help "Tag value for routing protocol";
+						}
+						leaf originator-id {
+							type types:ipv4-address;
+							configd:help "Border Gateway Protocol (BGP) originator ID attribute";
+						}
+						container aggregator {
+							presence "Enables route-map set aggregator";
+							configd:help "Border Gateway Protocol (BGP) aggregator attribute";
+							leaf ip {
+								mandatory true;
+								type types:ipv4-address;
+								must "(current() != '0.0.0.0')" {
+									error-message "Aggregator IP cannot be 0.0.0.0!";
+								}
+								configd:help "IP address of an aggregation";
+							}
+							leaf as {
+								mandatory true;
+								type uint32 {
+									range 1..max {
+										error-message "BGP AS number must be between 1 and 4294967295";
+									}
+								}
+								configd:help "AS number of an aggregation";
+							}
+						}
+						leaf local-preference {
+							type uint32;
+							configd:help "Border Gateway Protocol (BGP) local preference attribute";
+						}
+						container ipv6-next-hop {
+							presence "Enables route-map set ipv6-next-hop";
+							configd:help "Nexthop IPv6 address";
+							leaf global {
+								type types:ipv6-address;
+								configd:help "Nexthop IPv6 global address";
+							}
+							leaf local {
+								type types:ipv6-address;
+								configd:help "Nexthop IPv6 local address";
+							}
+						}
+						leaf origin {
+							type enumeration {
+								enum "igp" {
+									configd:help "Interior gateway protocol origin";
+								}
+								enum "egp" {
+									configd:help "Exterior gateway protocol origin";
+								}
+								enum "incomplete" {
+									configd:help "Incomplete origin";
+								}
+							}
+							configd:help "Border Gateway Protocol (BGP) origin code";
+						}
+						leaf metric-type {
+							type enumeration {
+								enum "type-1" {
+									configd:help "OSPF external type 1 metric";
+								}
+								enum "type-2" {
+									configd:help "OSPF external type 2 metric";
+								}
+							}
+							configd:help "Open Shortest Path First (OSPF) external metric-type";
+						}
+						leaf as-path-prepend {
+							type string {
+								configd:syntax "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/set/as-path-prepend/configd_syntax1.cli";
+							}
+							configd:help "Prepend string for a Border Gateway Protocol (BGP) AS-path attribute";
+							configd:validate "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/set/as-path-prepend/configd_validate.sh";
+						}
+						container prepend-as {
+							description "This container is used to configure own-as/last-as.";
+							configd:help "Prepend ASN";
+							leaf own-as {
+								description "This leaf is used to configure own-as <1..32> times.";
+								configd:help "Prepend own-as";
+								type uint32 {
+									range 1..32;
+								}
+							}
+							leaf last-as {
+								description "This leaf is used to configure last-as <1..32> times.";
+								configd:help "Prepend last-as";
+								type uint32 {
+									range 1..32;
+								}
+								must "not(../own-as)" {
+									error-message "You may configure only one option. (as-path-prepend| prepend-as last-as | prepend-as own-as)";
+								}
+							}
+						}
+						leaf community {
+							type rmap-community {
+								configd:syntax "/opt/vyatta/sbin/vyatta_routing_utils.pl --check-rmap-community $VAR(@)";
+							}
+							configd:help "Border Gateway Protocol (BGP) community";
+							configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/set/community/configd_allowed.sh";
+						}
+						leaf add-community {
+							type community {
+								configd:syntax "/opt/vyatta/sbin/vyatta_routing_utils.pl --check-clist-community $VAR(@)";
+							}
+							must "not(../community)" {
+								error-message "You may configure community or add-community. Not both!";
+							}
+							configd:help "Border Gateway Protocol (BGP) community to add to the existing community";
+							configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/set/add-community/configd_allowed.sh";
+						}
+						container extcommunity {
+							presence "Enables route-map set extcommunity";
+							configd:help "Border Gateway Protocol (BGP) extcommunity attribute";
+							leaf rt {
+								type string;
+								configd:help "Route Target extended community in AA:NN or IPAddr:NN format";
+							}
+							leaf soo {
+								type string;
+								configd:help "Site-of-Origin extended community in AA:NN or IPAddr:NN format";
+							}
+						}
+						container add-extcommunity {
+							description "BGP additive extcommunity attribute";
+							configd:help "Border Gateway Protocol (BGP) add to existing extcommunity attribute";
+							must "not (*) or not(../extcommunity)" {
+								error-message "You may configure extcommunity or add-extcommunity; not both";
+							}
+							leaf rt {
+								description "Route Target extended community in AA:NN or IPAddr:NN format";
+								type string;
+								configd:help "Route Target extended community in AA:NN or IPAddr:NN format";
+							}
+						}
+						leaf delete-community {
+							type community-list;
+							must "(current() = ../../../../community-list/standard/tagnode) or (current() = ../../../../community-list/expanded/tagnode)" {
+								error-message "Community-list does not exist!";
+							}
+							configd:help "Border Gateway Protocol (BGP) community-list to delete";
+							configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/set/delete-community/configd_allowed.sh";
+						}
+						leaf delete-extcommunity {
+							description "Border Gateway Protocol (BGP) Extended community-list to delete";
+							type extcommunity-list;
+							must "(current() = ../../../../extcommunity-list/standard/tagnode) or (current() = ../../../../extcommunity-list/expanded/tagnode)" {
+								error-message "Extcommunity-list does not exist!";
+							}
+							configd:help "Border Gateway Protocol (BGP) Extended community-list to delete";
+							configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/set/delete-extcommunity/configd_allowed.sh";
+						}
+						leaf atomic-aggregate {
+							type empty;
+							configd:help "Border Gateway Protocol (BGP) atomic aggregate attribute";
+						}
+						leaf weight {
+							type uint32;
+							configd:help "Border Gateway Protocol (BGP) weight attribute";
+						}
+						leaf metric {
+							type metric-val;
+							configd:help "Destination routing protocol metric";
+							must "(number(substring-after(current(), '+')) > 0 and number(substring-after(current(),'+')) < 4294967296) or"
+							     +"(number(substring-after(current(), '-')) > 0 and number(substring-after(current(),'-')) < 4294967296) or"
+							     +"((not(starts-with(current(), '+'))) and (not(starts-with(current(), '-'))) and (current() >= 0) and "
+							     +"(current() <= 4294967295))" {
+								error-message "Invalid metric value. It can be 0..4294967295 or [+/-]1..4294967295";
+							}
+
+						}
+						leaf ip-next-hop {
+							type types:ipv4-address;
+							configd:help "Nexthop IP address";
+						}
+						leaf level {
+							type isis-level;
+							description "IS-IS level";
+							configd:help "IS-IS level";
+						}
+					}
+					leaf continue {
+						type uint32 {
+							range 1..65535;
+						}
+						must "current() > ../tagnode" {
+							error-message "You may only continue forward in the route-map";
+						}
+						configd:help "Jump to a different rule in this route-map on a match";
+					}
+					container match {
+						presence "Enables route-map match";
+						configd:help "Route parameters to match";
+						leaf tag {
+							type uint32 {
+								range 1..65535;
+							}
+							configd:help "Route tag to match";
+						}
+						container ip {
+							presence "Enables route-map match ip";
+							configd:help "IP prefix parameters to match";
+							container peer {
+								presence "Enables route-map match ip peer";
+								configd:help "IP peer to match";
+								leaf access-list {
+									type leafref {
+										path "/policy:policy/route/access-list/tagnode";
+									}
+									configd:help "IP access-list to match";
+								}
+							}
+							container nexthop {
+								presence "Enables route-map match ip nexthop";
+								configd:help "IP next-hop of route to match";
+								uses ip-access-list-or-prefix-list {
+									refine access-list {
+									}
+									refine prefix-list {
+									}
+								}
+							}
+							container address {
+								presence "Enables route-map match ip address";
+								configd:help "IP address of route to match";
+								uses ip-access-list-or-prefix-list {
+									refine access-list {
+									}
+									refine prefix-list {
+									}
+								}
+							}
+							leaf source-protocol {
+								description "This container is used to match nexthop based on source-protocol.";
+								type enumeration {
+									enum "connected" {
+										configd:help "Connected";
+									}
+									enum "kernel" {
+										configd:help "Kernel";
+									}
+									enum "static" {
+										configd:help "Static routes";
+									}
+									enum "rip" {
+										configd:help "Routing Information Protocol (RIP)";
+									}
+									enum "ospf" {
+										configd:help "Open Shortest Path First (OSPF)";
+									}
+									enum "bgp" {
+										configd:help "Border Gateway Protocol (BGP)";
+									}
+								}
+								configd:help "Source protocol to be matched";
+							}
+						}
+						leaf origin {
+							type enumeration {
+								enum "egp" {
+									configd:help "Exterior gateway protocol origin ";
+								}
+								enum "igp" {
+									configd:help "Interior gateway protocol origin";
+								}
+								enum "incomplete" {
+									configd:help "Incomplete origin ";
+								}
+							}
+							configd:help "Border Gateway Protocol (BGP) origin code to match";
+						}
+						uses if-validation:interface-common {
+							refine interface {
+								configd:help "First hop interface of a route to match";
+								configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+							}
+						}
+						container community {
+							presence "Enables route-map match community";
+							configd:help "BGP community-list to match";
+							leaf exact-match {
+								type empty;
+								configd:help "Community-list to exactly match";
+								must "not(../community-list) or " +
+									 "not(../community-list = ../../../../../community-list/expanded/tagnode)" {
+									error-message "Exact-match cannot be configured for expanded community-list";
+								}
+							}
+							leaf community-list {
+								type community-list;
+								configd:help "BGP community-list to match";
+								must "(current() = ../../../../../community-list/standard/tagnode) or (current() = ../../../../../community-list/expanded/tagnode)" {
+									error-message "Community-list does not exist!";
+								}
+								configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/match/community/community-list/configd_allowed.sh";
+							}
+						}
+						container extcommunity {
+							presence "Enables route-map match extcommunity";
+							configd:help "BGP extcommunity-list to match";
+							leaf exact-match {
+								type empty;
+								configd:help "Extcommunity-list to exactly match";
+								must "not(../extcommunity-list) or " +
+									 "not(../extcommunity-list = ../../../../../extcommunity-list/expanded/tagnode)" {
+									error-message "Exact-match cannot be configured for expanded extcommunity-list";
+								}
+							}
+							leaf extcommunity-list {
+								type extcommunity-list;
+								configd:help "BGP extcommunity-list to match";
+								must "(current() = ../../../../../extcommunity-list/standard/tagnode) or (current() = ../../../../../extcommunity-list/expanded/tagnode)" {
+									error-message "Extcommunity-list does not exist!";
+								}
+								configd:allowed "/opt/vyatta/share/tmplscripts/policy/route/route-map/rule/match/extcommunity/extcommunity-list/configd_allowed.sh";
+							}
+						}
+						container ipv6 {
+							presence "Enables route-map match ipv6";
+							configd:help "IPv6 prefix parameters to match";
+							container peer {
+								presence "Enables route-map match ipv6 peer";
+								configd:help "IP peer to match";
+								leaf access-list {
+									type leafref {
+										path "/policy:policy/route/access-list6/tagnode";
+									}
+									configd:help "IPv6 access-list6 to match";
+								}
+							}
+							container nexthop {
+								presence "Enables route-map match ipv6 nexthop";
+								configd:help "IP next-hop of route to match";
+								uses ipv6-access-list-or-prefix-list {
+									refine access-list{
+									}
+									refine prefix-list {
+									}
+								}
+							}
+							container address {
+								presence "Enables route-map match ipv6 address";
+								configd:help "IPv6 address of route to match";
+								uses ipv6-access-list-or-prefix-list {
+									refine access-list {
+									}
+									refine prefix-list {
+									}
+								}
+							}
+							leaf source-protocol {
+								description "This container is used to match nexthop based on source-protocol.";
+									type enumeration {
+										enum "connected" {
+											configd:help "Connected";
+										}
+										enum "kernel" {
+											configd:help "Kernel";
+										}
+										enum "static" {
+											configd:help "Static routes";
+										}
+										enum "ripng" {
+											configd:help "Routing Information Protocol (RIPng)";
+										}
+										enum "ospfv3" {
+											configd:help "Open Shortest Path First (OSPF6)";
+										}
+										enum "bgp" {
+											configd:help "Border Gateway Protocol (BGP)";
+										}
+									}
+								configd:help "Source protocol to be matched";
+                                                       }
+						}
+						leaf as-path {
+							type leafref {
+								path "/policy:policy/route/as-path-list/tagnode";
+							}
+							configd:help "BGP as-path-list to match";
+						}
+						leaf metric {
+							type uint32 {
+								range 0..4294967295;
+							}
+							configd:help "Metric of route to match";
+						}
+					}
+				}
+			}
+			list prefix-list6 {
+				configd:help "IPv6 prefix-list filter";
+				key "tagnode";
+				leaf tagnode {
+					type string {
+						pattern '[-a-zA-Z0-9.]+' {
+							error-message "prefix-list6 name must be alpha-numeric";
+						}
+					}
+					configd:help "IPv6 prefix-list filter";
+				}
+				leaf description {
+					type string;
+					configd:help "Description for this prefix-list6";
+				}
+				list rule {
+					configd:help "Rule for this prefix-list6";
+					key "tagnode";
+					leaf tagnode {
+						type uint32 {
+							range 1..65535;
+						}
+						configd:help "Rule for this prefix-list6";
+					}
+					leaf description {
+						type string;
+						configd:help "Description for this rule";
+					}
+					leaf action {
+						mandatory true;
+						type enumeration {
+							enum "permit" {
+								configd:help "Permit matching prefixes";
+							}
+							enum "deny" {
+								configd:help "Deny matching prefixes";
+							}
+						}
+						configd:help "Action to take on prefixes matching this rule";
+					}
+					leaf ge {
+						type uint32 {
+							range 0..128;
+						}
+						must "not(../le) or current() <= ../le" {
+							error-message "ge must be lesser than or equal to le";
+						}
+						must "current() > number(substring-after(../prefix, '/'))" {
+							error-message "ge must be greater than prefix length";
+						}
+						configd:help "Prefix length to match a netmask greater than or equal to it";
+					}
+					leaf prefix {
+						mandatory true;
+						type types:ipv6-prefix;
+						configd:help "Prefix to match";
+					}
+					leaf le {
+						type uint32 {
+							range 0..128;
+						}
+						must "current() = 128 or current() > number(substring-after(../prefix, '/'))" {
+							error-message "le must be greater than prefix-len";
+						}
+						configd:help "Prefix length to match a netmask less than or equal to it";
+					}
+				}
+			}
+			list prefix-list {
+				configd:help "IP prefix-list filter";
+				key "tagnode";
+				leaf tagnode {
+					type string {
+						pattern '[-a-zA-Z0-9.]+' {
+							error-message "prefix-list name must be alpha-numeric";
+						}
+					}
+					configd:help "IP prefix-list filter";
+				}
+				leaf description {
+					type string;
+					configd:help "Description for this prefix-list";
+				}
+				list rule {
+					configd:help "Rule for this prefix-list";
+					key "tagnode";
+					leaf tagnode {
+						type uint32 {
+							range 1..65535;
+						}
+						configd:help "Rule for this prefix-list";
+					}
+					leaf description {
+						type string;
+						configd:help "Description for this rule";
+					}
+					leaf action {
+						mandatory true;
+						type enumeration {
+							enum "permit" {
+								configd:help "Permit matching prefixes";
+							}
+							enum "deny" {
+								configd:help "Deny matching prefixes";
+							}
+						}
+						configd:help "Action to take on prefixes matching this rule [REQUIRED]";
+					}
+					leaf ge {
+						type uint32 {
+							range 0..32;
+						}
+						must "not(../le) or current() <= ../le" {
+							error-message "ge must be lesser than or equal to le";
+						}
+						must "current() > number(substring-after(../prefix, '/'))" {
+							error-message "ge must be greater than prefix length";
+						}
+						configd:help "Prefix length to match a netmask greater than or equal to it";
+					}
+					leaf prefix {
+						mandatory true;
+						type types:ipv4-prefix;
+						configd:help "Prefix to match";
+					}
+					leaf le {
+						type uint32 {
+							range 0..32;
+						}
+						must "current() = 32 or current() > number(substring-after(../prefix, '/'))" {
+							error-message "le must be greater than prefix-len";
+						}
+						configd:help "Prefix length to match a netmask less than or equal to it";
+					}
+				}
+			}
+		}
+	}
+}

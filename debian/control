@@ -1,0 +1,254 @@
+Source: vyatta-protocols-common
+Section: contrib/net
+Priority: extra
+Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>
+Build-Depends:
+ debhelper (>= 9),
+ dh-exec,
+ dh-golang,
+ dh-python,
+ dh-systemd,
+ dh-yang,
+ golang-any,
+# Ensure required dependencies are also added to golang-vyatta-protocols-dev
+ golang-github-danos-encoding-rfc7951-dev,
+ golang-github-danos-vci-dev (>= 4.2),
+ golang-github-hashicorp-go-multierror-dev,
+ golang-github-sirupsen-logrus-dev,
+ python3
+Standards-Version: 3.9.8
+
+Package: vyatta-protocols-common
+Architecture: any
+Depends:
+ python3,
+ vyatta-cfg (>= 0.18.56),
+ vyatta-interfaces,
+ vyatta-op,
+ vyatta-system,
+ ${misc:Depends},
+ ${perl:Depends},
+ ${shlibs:Depends}
+Suggests:
+ ethtool,
+ ncurses-bin (>= 5.5-5),
+ net-tools,
+ ntpdate,
+ util-linux (>= 2.13-5)
+Breaks: vyatta-protocols (<< 1.12.0)
+Replaces: vyatta-protocols (<< 1.12.0)
+Description: common package
+ Configuration for vyatta-protocols, common scripts, tmplscripts
+ template and migration scripts
+
+Package: vyatta-protocols-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: vyatta protocols yang module package
+ The YANG module package for vyatta-protocols-v1
+
+Package: vyatta-protocols-interface-validation-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: interface validation yang module package
+ The YANG module package for vyatta-protocols-interface-validation-v1
+
+Package: vyatta-protocols-interface-validation-mpls-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: interface validation yang module package
+ The YANG module package for vyatta-protocols-interface-validation-mpls-v1
+
+Package: vyatta-protocols-interface-validation-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: interface validation yang module package
+ The YANG module package for
+ vyatta-protocols-interface-validation-routing-instance-v1
+
+Package: vyatta-op-show-protocols-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: "show protocols" operational YANG module
+ The YANG module package for vyatta-op-show-protocols-v1-yang
+
+Package: vyatta-op-reset-protocols-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: "reset protocols" operational YANG module
+ The YANG module package for vyatta-op-reset-protocols-v1-yang
+
+Package: vyatta-op-monitor-protocols-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: "monitor protocols" operational YANG module
+ The YANG module package for vyatta-op-monitor-protocols-v1-yang
+
+Package: vyatta-op-show-ip-ipv6-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: Vyatta "show ip" and "show ipv6" YANG module package
+ The YANG module package for vyatta-op-show-ip-ipv6-v1
+
+Package: vyatta-op-show-ip-ipv6-route-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: Vyatta "show ip|ipv6 route" YANG module package
+ The YANG module package for vyatta-op-show-ip-ipv6-route-v1
+
+Package: vyatta-op-show-ip-ipv6-route-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: Vyatta "show ip|ipv6 route routing-instance" YANG module package
+ The YANG module package for vyatta-op-show-ip-ipv6-route-routing-instance-v1
+
+Package: vyatta-policy-route-v1-yang
+Architecture: all
+Depends:
+ vyatta-cfg (>= 0.18.56),
+ vyatta-policy-route-vci | vyatta-frr-vci,
+ vyatta-system (>= 1.6.1),
+ ${misc:Depends},
+ ${perl:Depends},
+ ${yang:Depends}
+Breaks: vyatta-op (<< 1.0), vyatta-op-policy-pbr-v1-yang (<< 1.8.2)
+Replaces: vyatta-op (<< 1.0)
+Description: policy yang module package
+ The YANG module package for vyatta-protocols-policy-v1
+
+Package: vyatta-protocols-static-v1-yang
+Architecture: any
+Depends:
+ vyatta-rib-vci | vyatta-frr-vci,
+ vyatta-static-arp,
+ ${misc:Depends},
+ ${yang:Depends}
+Description: static yang module package
+ The YANG module package for vyatta-protocols-static-v1
+
+Package: vyatta-op-common-protocols-policy-route-v1-yang
+Architecture: all
+Depends: vyatta-policy-route-v1-yang, ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common policy route op commands
+ The YANG module package for vyatta-op-common-protocols-policy-route-v1
+
+Package: vyatta-protocols-static-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: routing-instance static route yang module package
+ The YANG module package for vyatta-protocols-static-route-routing-instance-v1
+
+Package: vyatta-protocols-static-routing-instance-inter-vrf-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: routing-instance inter-vrf static route yang module package
+ The YANG module package for
+ vyatta-protocols-static-route-routing-instance-inter-vrf-v1
+
+Package: vyatta-static-pbr-tables-feature
+Architecture: all
+Depends: vyatta-protocols-static-v1-yang, ${misc:Depends}
+Priority: optional
+Description: Vyatta feature for static PBR tables
+ The feature flag for static PBR table support.
+
+Package: vyatta-static-pbr-tables-routing-instance-feature
+Architecture: all
+Depends: vyatta-protocols-static-routing-instance-v1-yang, ${misc:Depends}
+Priority: optional
+Description: Vyatta feature for static PBR tables in routing instances
+ The feature flag for static PBR table support in routing instances.
+
+Package: vyatta-op-common-protocols-static-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common "static" op commands
+ The YANG module package for vyatta-op-common-protocols-static-v1
+
+Package: vyatta-op-common-protocols-static-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common "static" routing instance op commands
+ The YANG module package for
+ vyatta-op-common-protocols-static-routing-instance-v1
+
+Package: vyatta-op-common-protocols-bgp-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common BGP op commands
+ The YANG module package for vyatta-op-common-protocols-bgp-v1
+
+Package: vyatta-op-common-protocols-bgp-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common BGP routing instance op commands
+ The YANG module package for vyatta-op-common-protocols-bgp-routing-instance-v1
+
+Package: vyatta-op-common-protocols-ospf-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common OSPFv2 op commands
+ The YANG module package for vyatta-op-common-protocols-ospf-v1
+
+Package: vyatta-op-common-protocols-ospf-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common OSPFv2 routing instance op commands
+ The YANG module package for vyatta-op-common-protocols-ospf-routing-instance-v1
+
+Package: vyatta-op-common-protocols-ospfv3-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common OSPFv3 op commands
+ The YANG module package for vyatta-op-common-protocols-ospfv3-v1
+
+Package: vyatta-op-common-protocols-ospfv3-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common OSPFv3 routing instance op commands
+ The YANG module package for
+ vyatta-op-common-protocols-ospfv3-routing-instance-v1
+
+Package: vyatta-op-common-protocols-rip-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common RIP op commands
+ The YANG module package for vyatta-op-common-protocols-rip-v1
+
+Package: vyatta-op-common-protocols-rip-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common RIP routing instance op commands
+ The YANG module package for vyatta-op-common-protocols-rip-routing-instance-v1
+
+Package: vyatta-op-common-protocols-ripng-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common RIPNG op commands
+ The YANG module package for vyatta-op-common-protocols-ripng-v1
+
+Package: vyatta-op-common-protocols-ripng-routing-instance-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: YANG modules for common RIPNG routing instance op commands
+ The YANG module package for
+ vyatta-op-common-protocols-ripng-routing-instance-v1
+
+Package: vyatta-static-arp
+Architecture: any
+Priority: extra
+Depends: iproute2, python3, ${misc:Depends}
+Description: static arp service
+ Service for maintaining static arp configuration
+
+Package: golang-vyatta-protocols-dev
+Architecture: any
+Depends:
+ golang-github-danos-encoding-rfc7951-dev,
+ golang-github-danos-vci-dev (>= 4.2),
+ golang-github-hashicorp-go-multierror-dev,
+ golang-github-sirupsen-logrus-dev,
+ ${misc:Depends}
+Built-Using: ${misc:Built-Using}
+Description: Vyatta protocols Go libraries
+ Go libraries for Vyatta protocols

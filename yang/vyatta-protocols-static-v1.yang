@@ -1,0 +1,597 @@
+module vyatta-protocols-static-v1 {
+	namespace "urn:vyatta.com:mgmt:vyatta-protocols-static:1";
+	prefix vyatta-protocols-static-v1;
+
+	import vyatta-types-v1 {
+		prefix types;
+	}
+	import vyatta-protocols-v1 {
+		prefix protocols;
+	}
+	import configd-v1 {
+		prefix configd;
+	}
+
+	organization "AT&T, Inc.";
+	contact
+		"AT&T
+		 Postal: 208 S. Akard Street
+		         Dallas, TX 75202
+		 Web: www.att.com";
+
+	description
+		"Copyright (c) 2017-2019, AT&T Intellectual Property.
+		 All rights reserved.
+
+		 Copyright (c) 2014-2017 by Brocade Communications Systems, Inc.
+		 All rights reserved.
+
+		 Redistribution and use in source and binary forms, with or
+		 without modification, are permitted provided that the following
+		 conditions are met:
+
+		 1. Redistributions of source code must retain the above copyright
+			notice, this list of conditions and the following disclaimer.
+		 2. Redistributions in binary form must reproduce the above
+			copyright notice, this list of conditions and the following
+			disclaimer in the documentation and/or other materials provided
+			with the distribution.
+		 3. Neither the name of the copyright holder nor the names of its
+			contributors may be used to endorse or promote products derived
+			from this software without specific prior written permission.
+
+		 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		 COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		 POSSIBILITY OF SUCH DAMAGE.
+
+		 SPDX-License-Identifier: BSD-3-Clause
+
+		 This module implements vyatta-protocols-static-v1.";
+
+	revision 2018-12-06 {
+		description "Modify error messages to be relevant for delete action also";
+	}
+	revision 2018-11-14 {
+		description "Added static-pbr-tables feature.
+			Added static-container, static-route-main-table, and static-route-pbr-tables groupings.
+			Update configd:allowed statements.";
+	}
+	revision 2017-10-26 {
+		description "Removed configd configuration scripts";
+	}
+	revision 2017-08-25 {
+		description "Allow tag to be configured for static routes";
+	}
+	revision 2017-06-26 {
+		description "Adding priority for blackhole and unreachable node";
+	}
+	revision 2017-06-13 {
+		description "Relax interface-route constraint to allow augmentation";
+	}
+	revision 2017-02-20 {
+		description "Correcting xpath yang grammar sytax != with not operator";
+	}
+	revision 2016-07-13 {
+		description "Removing yang grammar validation for table ipv4 next-hop node";
+	}
+	revision 2016-06-24 {
+		description "Add config priority to static arp";
+	}
+	revision 2016-05-02 {
+		description "Adding yang grammar validation and grouping ipv4/v6 next-hop node";
+	}
+	revision 2014-08-06 {
+		description "Initial revision of version 1";
+	}
+
+	feature static-pbr-tables {
+		description "Support for multiple static PBR tables in the default routing instance";
+	}
+
+	grouping static-route-distance {
+		leaf distance {
+			type uint32 {
+				range 1..255;
+			}
+			configd:help "Distance value for this route";
+			description "Distance value for this route";
+			default "1";
+		}
+	}
+
+	grouping static-route-tag {
+		leaf tag {
+			type uint32 {
+				range 1..max;
+			}
+			configd:help "Tag value to control redistribution";
+			description "Tag value to control redistribution";
+		}
+	}
+
+	grouping static-route-interface {
+		leaf interface {
+			type string;
+			configd:help "Outgoing interface";
+			description "Outgoing interface";
+			configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all ";
+		}
+	}
+
+	grouping static-route-disable {
+		leaf disable {
+			type empty;
+			configd:help "Disable IPv4 next-hop static route";
+			description "Disable IPv4 next-hop static route";
+		}
+	}		
+
+	// This grouping has dependency on the external route list node referenced via a relative path.
+	grouping static-route-ipv4-next-hop {
+		list next-hop {
+			configd:help "Next-hop router";
+			description "Next-hop router";
+			must "disable or " +
+				"(not(distance = ../blackhole/distance) and " +
+				"not(distance = ../unreachable/distance) and " +
+				"count(../../interface-route[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]) 
+				= count(../../interface-route[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]/disable))" {
+					error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable";
+			}
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv4-address;
+				// Not loopback multicast or broadcast.
+				must "(not(starts-with(., '127.'))) and " +
+					"((substring-before(., '.') < 224) or " +
+					"(substring-before(., '.') >=240)) and " +
+					"(not(starts-with(., '255.255.255.255')))" {
+						error-message "next-hop shouldn't be a loopback, multicast or broadcast address.";
+				}
+				configd:help "Next-hop router";
+				description "Next-hop router";
+			}
+			uses static-route-disable;
+			uses static-route-interface;
+			uses static-route-distance;
+			uses static-route-tag;
+			must "not(tag) or " +
+				"not(../next-hop[tag != current()/tag][distance = current()/distance]) and " +
+				"not(../next-hop[not(tag)][distance = current()/distance])" {
+				error-message "Next-hops with same distance must have same tag";
+			}
+		}
+	}
+
+	// This grouping has dependency on the external route6 list node referenced via a relative path.
+	grouping static-route-ipv6-next-hop {
+		list next-hop {
+			configd:help "Next-hop IPv6 router";
+			description "Next-hop IPv6 router";
+			must "disable or " +
+				"(not(distance = ../blackhole/distance) and " +
+				"not(distance = ../unreachable/distance) and " +
+				"count(../../interface-route6[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]) 
+				= count(../../interface-route6[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]/disable))" {
+					error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable";
+			}
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv6-address;
+				// Not multicast loopback or Unspecified.
+				must "(not(starts-with(., 'ff'))) and " +
+					"(not(. = '::1')) and " +
+					"(not(. = '::'))" {
+					error-message "next-hop shouldn't be multicast, loopback or unspecified.";
+				}
+				configd:help "Next-hop IPv6 router";
+				description "Next-hop IPv6 router";
+			}
+			uses static-route-disable;
+			uses static-route-interface;
+			uses static-route-distance;
+			uses static-route-tag;
+			must "not(tag) or " +
+				"not(../next-hop[tag != current()/tag][distance = current()/distance]) and " +
+				"not(../next-hop[not(tag)][distance = current()/distance])" {
+				error-message "Next-hops with same distance must have same tag";
+			}
+		}
+	}
+
+	grouping static-container {
+		container static {
+			presence "true";
+			configd:priority "450";
+			configd:help "static route parameters";
+		}
+	}
+
+	grouping static-route-pbr-tables {
+		list table {
+			configd:help "Policy route table number";
+			key "tagnode";
+			leaf tagnode {
+				type uint32 {
+					range 1..128 {
+						error-message "Table value must be in the range (1-128)";
+					}
+				}
+				configd:help "Policy route table number";
+			}
+			list route {
+				configd:help "Static route";
+				must "next-hop or blackhole or unreachable" {
+					error-message "Static route must have at least one next-hop or be marked blackhole/unreachable";
+				}
+				key "tagnode";
+				leaf tagnode {
+					type types:ipv4-prefix {
+						configd:normalize "normalize ipv4-prefix";
+					}
+					configd:help "Static route";
+				}
+				list next-hop {
+					configd:help "Next-hop router [REQUIRED]";
+					must "disable or " + 
+						"(not(distance = ../blackhole/distance) and " + 
+						"not(distance = ../unreachable/distance) and " +
+						"count(../../interface-route[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]) = count(../../interface-route[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]/disable))" {
+							error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable";
+					}
+					key "tagnode";
+					leaf tagnode {
+						type types:ipv4-address;
+						configd:help "Next-hop router [REQUIRED]";
+					}
+					leaf disable {
+						type empty;
+						configd:help "Disable IPv4 next-hop static route";
+					}
+					leaf interface {
+						type string;
+						configd:help "Outgoing interface";
+						configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+					}
+					uses static-route-distance;
+				}
+				container blackhole {
+					presence "true";
+					configd:priority "455";
+					configd:help "Silently discard pkts when matched";
+					must "not(../unreachable)" {
+						error-message "Must not configure both blackhole and unreachable";
+					}
+					uses static-route-distance;
+				}
+				container unreachable {
+					presence "Indicates an unreachable route";
+					configd:priority "455";
+					configd:help "Discard packets with ICMP unreachable";
+					uses static-route-distance;
+				}
+			}
+			list route6 {
+				configd:help "Static IPv6 route";
+				must "next-hop or blackhole or unreachable" {
+					error-message "Static route must have at least one next-hop or be marked blackhole/unreachable";
+				}
+				key "tagnode";
+				leaf tagnode {
+					type types:ipv6-prefix {
+						configd:normalize "normalize ipv6-prefix";
+					}
+					configd:help "Static IPv6 route";
+				}
+				list next-hop {
+					configd:help "Next-hop IPv6 router [REQUIRED]";
+					must "disable or " + 
+						"(not(distance = ../blackhole/distance) and " + 
+						"not(distance = ../unreachable/distance) and " +
+						"count(../../interface-route6[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]) = count(../../interface-route6[tagnode = current()/../tagnode]/next-hop-interface[distance = current()/distance]/disable))" {
+							error-message "Must not configure the same distance for next-hop, interface-route6 and blackhole/unreachable";
+					}
+					key "tagnode";
+					leaf tagnode {
+						type types:ipv6-address; 
+						// Not multicast loopback or Unspecified.
+						 must "(not(starts-with(., 'ff'))) and " +
+							"(not(. = '::1')) and " +
+							"(not(. = '::'))" {
+							error-message "next-hop shouldn't be multicast, loopback or unspecified address.";
+						}
+						configd:help "Next-hop IPv6 router [REQUIRED]";
+					}
+					leaf disable {
+						type empty;
+						configd:help "Disable IPv6 next-hop static route";
+					}
+					leaf interface {
+						type string;
+						configd:help "Outgoing interface";
+						configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+					}
+					uses static-route-distance;
+				}
+				container blackhole {
+					presence "true";
+					configd:priority "455";
+					configd:help "Silently discard pkts when matched";
+					must "not(../unreachable)" {
+						error-message "Must not configure both blackhole and unreachable";
+					}
+					uses static-route-distance;
+				}
+				container unreachable {
+					presence "Indicates an unreachable route";
+					configd:priority "455";
+					configd:help "Discard packets with ICMP unreachable";
+					uses static-route-distance;
+				}
+			}
+			list interface-route {
+				configd:help "Interface based static route";
+				must "next-hop-interface" {
+					error-message "Static route must have at least one next-hop-interface";
+				}
+				key "tagnode";
+				leaf tagnode {
+					type types:ipv4-prefix {
+						configd:normalize "normalize ipv4-prefix";
+					}
+					configd:help "Interface based static route";
+				}
+				list next-hop-interface {
+					configd:help "Next-hop interface [REQUIRED]";
+					must "disable or " +
+						"(not(distance = ../../route[tagnode = current()/../tagnode]/blackhole/distance) and " +
+						"not(distance = ../../route[tagnode = current()/../tagnode]/unreachable/distance))" {
+							error-message "Must not configure same distance for interface-route and blackhole/unreachable";
+					}
+					configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+					key "tagnode";
+					leaf tagnode {
+						type types:interface-ifname;
+						configd:help "Next-hop interface [REQUIRED]";
+					}
+					leaf disable {
+						type empty;
+						configd:help "Disable IPv4 interface static route";
+					}
+					uses static-route-distance;
+				}
+			}
+			list interface-route6 {
+				configd:help "Interface based static route";
+				must "next-hop-interface" {
+					error-message "Static route must have at least one next-hop-interface";
+				}
+				key "tagnode";
+				leaf tagnode {
+					type types:ipv6-prefix {
+						configd:normalize "normalize ipv6-prefix";
+					}
+					configd:help "Interface based static route";
+				}
+				list next-hop-interface {
+					configd:help "Next-hop interface [REQUIRED]";
+					must "disable or " +
+						"(not(distance = ../../route6[tagnode = current()/../tagnode]/blackhole/distance) and " +
+						"not(distance = ../../route6[tagnode = current()/../tagnode]/unreachable/distance))" {
+							error-message "Must not configure same distance for interface-route and blackhole/unreachable";
+					}
+					configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+					key "tagnode";
+					leaf tagnode {
+						type types:interface-ifname;
+						configd:help "Next-hop interface [REQUIRED]";
+					}
+					leaf disable {
+						type empty;
+						configd:help "Disable IPv6 interface static route";
+					}
+					uses static-route-distance;
+				}
+			}
+		}
+	}
+
+	grouping static-route-main-table {
+		// route node has a dependency on next-hop/blackhole/unreachable/next-hop-routing-instance child node.
+		// One of the above mentioned child nodes must be configured for it to be a valid configuration.
+		// Any new node addition inside the route node will break the dependency.
+		list route {
+			configd:help "Static route";
+			must "count(./*) > 1" {
+				error-message "Static route must have at least one next-hop or be marked blackhole/unreachable";
+			}
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv4-prefix {
+					configd:normalize "normalize ipv4-prefix";
+				}
+				configd:help "Static route";
+			}
+			uses static-route-ipv4-next-hop;
+			container blackhole {
+				presence "Indicates a blackhole route";
+				configd:priority "455";
+				configd:help "Silently discard pkts when matched";
+				must "not(../unreachable)" {
+					error-message "Must not configure both blackhole and unreachable";
+				}
+				uses static-route-distance;
+				uses static-route-tag;
+			}
+			container unreachable {
+				presence "Indicates an unreachable route";
+				configd:priority "455";
+				configd:help "Discard packets with ICMP unreachable";
+				uses static-route-distance;
+				uses static-route-tag;
+			}
+		}
+		list arp {
+			configd:priority "525";
+			configd:help "Static ARP translation";
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv4-address;
+				configd:help "Static ARP translation";
+			}
+			leaf hwaddr {
+				mandatory true;
+				type types:mac-address;
+				configd:help "Hardware protocol (e.g. MAC) address to translate to";
+			}
+			leaf interface {
+				mandatory true;
+				type string;
+				configd:help "Outgoing interface";
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+			}
+		}
+		// route node has a dependency on next-hop/blackhole/unreachable/next-hop-routing-instance child node.
+		// One of the above mentioned child nodes must be configured for it to be a valid configuration.
+		// Any new node addition inside the route node will break the dependency.
+		list route6 {
+			configd:help "Static IPv6 route";
+			must "count(./*) > 1" {
+				error-message "Static route must have at least one next-hop or be marked blackhole/unreachable";
+			}
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv6-prefix {
+					configd:normalize "normalize ipv6-prefix";
+				}
+				configd:help "Static IPv6 route";
+				description "Static IPv6 route";
+			}
+			uses static-route-ipv6-next-hop;
+			container blackhole {
+				presence "Indicates a blackhole route";
+				configd:priority "455";
+				configd:help "Silently discard pkts when matched";
+				must "not(../unreachable)" {
+					error-message "Must not configure both blackhole and unreachable";
+				}
+				uses static-route-distance;
+				uses static-route-tag;
+			}
+			container unreachable {
+				presence "Indicates an unreachable route";
+				configd:priority "455";
+				configd:help "Discard packets with ICMP unreachable";
+				uses static-route-distance;
+				uses static-route-tag;
+			}
+		}
+		list interface-route {
+			configd:help "Interface based static route";
+			must "count(*) > 1" {
+				error-message "Static route must have at least one next-hop interface information";
+			}
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv4-prefix {
+					configd:normalize "normalize ipv4-prefix";
+				}
+				configd:help "Interface based static route";
+			}
+			list next-hop-interface {
+				configd:help "Next-hop interface";
+				must "disable or " +
+					"(not(distance = ../../route[tagnode = current()/../tagnode]/blackhole/distance) and " +
+					"not(distance = ../../route[tagnode = current()/../tagnode]/unreachable/distance))" {
+						error-message "Must not configure same distance for interface-route and blackhole/unreachable";
+				}
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+				key "tagnode";
+				leaf tagnode {
+					type types:interface-ifname;
+					configd:help "Next-hop interface [REQUIRED]";
+				}
+				leaf disable {
+					type empty;
+					configd:help "Disable IPv4 interface static route";
+				}
+				uses static-route-distance;
+				uses static-route-tag;
+				must "not(tag) or " +
+					"not(../next-hop-interface[tag != current()/tag][distance = current()/distance]) and " +
+					"not(../next-hop-interface[not(tag)][distance = current()/distance])" {
+					error-message "Next-hops with same distance must have same tag";
+				}
+			}
+		}
+		list interface-route6 {
+			configd:help "Interface based IPv6 static route";
+			must "count(*) > 1" {
+				error-message "Static route must have at least one next-hop interface information";
+			}
+			key "tagnode";
+			leaf tagnode {
+				type types:ipv6-prefix {
+					configd:normalize "normalize ipv6-prefix";
+				}
+				configd:help "Interface based IPv6 static route";
+			}
+			list next-hop-interface {
+				configd:help "Next-hop interface";
+				must "disable or " +
+					"(not(distance = ../../route6[tagnode = current()/../tagnode]/blackhole/distance) and " +
+					"not(distance = ../../route6[tagnode = current()/../tagnode]/unreachable/distance))" {
+						error-message "Must not configure same distance for interface-route and blackhole/unreachable";
+				}
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+				key "tagnode";
+				leaf tagnode {
+					type types:interface-ifname;
+					configd:help "Next-hop interface [REQUIRED]";
+				}
+				leaf disable {
+					type empty;
+					configd:help "Disable IPv6 interface static route";
+				}
+				uses static-route-distance;
+				uses static-route-tag;
+				must "not(tag) or " +
+					"not(../next-hop-interface[tag != current()/tag][distance = current()/distance]) and " +
+					"not(../next-hop-interface[not(tag)][distance = current()/distance])" {
+					error-message "Next-hops with same distance must have same tag";
+				}
+			}
+		}
+	}
+
+	// Retained for backwards compatibility
+	// This is not currently used in any Vyatta YANG modules
+	grouping static-route {
+		uses static-container {
+			augment static {
+				uses static-route-pbr-tables;
+				uses static-route-main-table;
+			}
+		}
+	}
+
+	augment /protocols:protocols {
+		uses static-container;
+	}
+
+	augment /protocols:protocols/static {
+		uses static-route-pbr-tables {
+			if-feature static-pbr-tables;
+		}
+		uses static-route-main-table;
+	}
+}

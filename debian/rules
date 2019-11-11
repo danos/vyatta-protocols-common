@@ -1,0 +1,55 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+export DH_GOPKG := eng.vyatta.net/protocols
+
+# Use hardening options
+export DEB_BUILD_HARDENING=1
+
+GO_BUILD_DIR = golang_build
+
+%:
+	# Build Go packages
+	dh $@ --buildsystem=golang --with=golang       \
+	      --builddirectory=${GO_BUILD_DIR}         \
+	      --package golang-vyatta-protocols-dev
+
+	# Build all other packages
+	# There must be a --no-package argument for each --package argument
+	# in the above dh invocation
+	dh $@ --with=yang,python3,systemd              \
+	      --no-package golang-vyatta-protocols-dev
+
+override_dh_auto_build: vet
+	dh_auto_build
+
+# We do not vet vendor code
+vet:
+	go tool vet $$(find . -type f -name \*.go | xargs dirname | \
+		sort -u | grep -v "/vendor/");
+
+override_dh_auto_configure:
+	dh_auto_configure
+
+	# Place protocols Go library in the same location as it would be
+	# if we had a build dependency on golang-vyatta-protocols-dev.	
+	#	
+	# This keeps the import path of the library the same for components
+	# which we own and build, as well as those which build against
+	# golang-vyatta-protocols-dev.
+	#
+	# This removes the need for golang-vyatta-protocols-dev to exist
+	# in a separate repository/source package,
+	rm -vfr ${GO_BUILD_DIR}/src/eng.vyatta.net/protocols/lib
+	cp -vr lib/go/* ${GO_BUILD_DIR}/src/eng.vyatta.net/protocols
+
+override_dh_installinit:
+	# services do not have SysV init scripts
+	dh_installinit --noscripts
+
+override_dh_systemd_enable:
+	dh_systemd_enable -pvyatta-static-arp --no-enable
+
+override_dh_systemd_start:
+	dh_systemd_start -pvyatta-static-arp --no-start

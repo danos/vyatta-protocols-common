@@ -1,0 +1,3 @@
+scripts/policy/* opt/vyatta/sbin/
+tmplscripts/policy/* opt/vyatta/share/tmplscripts/policy
+yang/vyatta-policy-route-v1.yang usr/share/configd/yang/

@@ -1,0 +1,154 @@
+module vyatta-op-show-ip-ipv6-route-v1 {
+    namespace "urn:vyatta.com:mgmt:vyatta-op-show-ip-ipv6-route:1";
+    prefix vyatta-op-show-ip-ipv6-route-v1;
+
+    import configd-v1 {
+        prefix configd;
+    }
+    import vyatta-opd-extensions-v1 {
+        prefix opd;
+    }
+    import vyatta-op-show-v1 {
+        prefix op-show;
+    }
+    import vyatta-op-show-ip-ipv6-v1 {
+        prefix op-show-ip-ipv6;
+    }
+    import vyatta-types-v1 {
+		prefix types;
+	}
+
+    organization "AT&T, Inc.";
+    contact
+        "AT&T
+         Postal: 208 S. Akard Street
+                 Dallas, TX 75202
+         Web: www.att.com";
+
+    description
+        "Copyright (c) 2018-2019, AT&T Intellectual Property.
+         All rights reserved.
+
+		 Redistribution and use in source and binary forms, with or
+		 without modification, are permitted provided that the following
+		 conditions are met:
+
+		 1. Redistributions of source code must retain the above copyright
+			notice, this list of conditions and the following disclaimer.
+		 2. Redistributions in binary form must reproduce the above
+			copyright notice, this list of conditions and the following
+			disclaimer in the documentation and/or other materials provided
+			with the distribution.
+		 3. Neither the name of the copyright holder nor the names of its
+			contributors may be used to endorse or promote products derived
+			from this software without specific prior written permission.
+
+		 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		 COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		 POSSIBILITY OF SUCH DAMAGE.
+
+		 SPDX-License-Identifier: BSD-3-Clause
+
+         This module implements the IP(v6) routes show CLI";
+
+    revision 2019-05-29 {
+        description "Add show-ip-route-prefix-argument and
+            show-ipv6-route-prefix-argument groupings";
+    }
+    revision 2018-11-02 {
+        description "Initial revision";
+    }
+
+    grouping show-ip-route-prefix-argument {
+        opd:argument prefix {
+            type union {
+                type types:ipv4-address {
+                    configd:help "Show IP routes of specified IP address";
+                }
+                type types:ipv4-prefix {
+                    configd:help "Show IP routes of specified IP prefix";
+                }
+            }
+            opd:command longer-prefixes {
+                opd:help "Show longer prefix routes for specified IP prefix";
+            }
+        }
+    }
+
+    grouping show-ip-route-commands {
+        uses show-ip-route-prefix-argument;
+        opd:command connected {
+            opd:help "Show IP connected routes";
+        }
+        opd:command kernel {
+            opd:help "Show IP kernel routes";
+        }
+        opd:command summary {
+            opd:help "Show IP routes summary";
+        }
+    }
+
+    opd:augment /op-show:show/op-show-ip-ipv6:ip {
+        opd:command route {
+            opd:help "Show IP routes";
+            opd:privileged true;
+            opd:on-enter 'vtyshow.pl "$@" database';
+            opd:inherit "Using vtysh needs privileges" {
+                opd:privileged true;
+                opd:on-enter 'vtyshow.pl "$@"';
+            }
+            uses show-ip-route-commands;
+        }
+    }
+
+    grouping show-ipv6-route-prefix-argument {
+        opd:argument prefix {
+            type union {
+                type types:ipv6-address {
+                    configd:help "Show IPv6 routes of specified IP address";
+                }
+                type types:ipv6-prefix {
+                    configd:help "Show IPv6 routes of specified IP prefix";
+                }
+            }
+            opd:command longer-prefixes {
+                opd:help "Show longer prefix routes for specified IP prefix";
+            }
+        }
+    }
+
+    grouping show-ipv6-route-commands {
+        uses show-ipv6-route-prefix-argument;
+        opd:command connected {
+            opd:help "Show IPv6 connected routes";
+        }
+        opd:command kernel {
+            opd:help "Show IPv6 kernel routes";
+        }
+        opd:command summary {
+            opd:help "Show IPv6 routes summary";
+        }
+    }
+
+    opd:augment /op-show:show/op-show-ip-ipv6:ipv6 {
+        opd:command route {
+            opd:help "Show IPv6 routes";
+            opd:privileged true;
+            opd:on-enter 'vtyshow.pl "$@" database';
+            opd:inherit "Using vtysh needs privileges" {
+                opd:privileged true;
+                opd:on-enter 'vtyshow.pl "$@"';
+            }
+            uses show-ipv6-route-commands;
+        }
+    }
+}

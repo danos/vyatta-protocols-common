@@ -1,0 +1,458 @@
+module vyatta-protocols-static-routing-instance-inter-vrf-v1 {
+	namespace "urn:vyatta.com:mgmt:vyatta-protocols-static-routing-instance-inter-vrf:1";
+	prefix vyatta-protocols-static-routing-instance-inter-vrf-v1;
+
+	import vyatta-protocols-static-routing-instance-v1 {
+		prefix vyatta-static-routing-instance;
+	}
+	import vyatta-routing-v1 {
+		prefix vyatta-routing;
+	}
+	import vyatta-protocols-static-v1 {
+		prefix vyatta-static;
+	}
+	import vyatta-protocols-v1 {
+		prefix protocols;
+	}
+	import configd-v1 {
+		prefix configd;
+	}
+	import vyatta-routing-instance-interfaces-v1 {
+		prefix routing-instance-interfaces;
+	}
+	import vyatta-types-v1 {
+		prefix types;
+	}
+
+	organization "AT&T, Inc.";
+	contact
+		"AT&T
+		 Postal: 208 S. Akard Street
+		         Dallas, TX 75202
+		 Web: www.att.com";
+
+	description
+		"Copyright (c) 2017-2019, AT&T Intellectual Property.
+		 All rights reserved.
+
+		 Copyright (c) 2014-2017 by Brocade Communications Systems, Inc.
+		 All rights reserved.
+
+		 Redistribution and use in source and binary forms, with or
+		 without modification, are permitted provided that the following
+		 conditions are met:
+
+		 1. Redistributions of source code must retain the above copyright
+			notice, this list of conditions and the following disclaimer.
+		 2. Redistributions in binary form must reproduce the above
+			copyright notice, this list of conditions and the following
+			disclaimer in the documentation and/or other materials provided
+			with the distribution.
+		 3. Neither the name of the copyright holder nor the names of its
+			contributors may be used to endorse or promote products derived
+			from this software without specific prior written permission.
+
+		 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		 COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		 POSSIBILITY OF SUCH DAMAGE.
+
+		 SPDX-License-Identifier: BSD-3-Clause
+
+		 The YANG module package for
+		 vyatta-protocols-static-route-routing-instance-inter-vrf-v1";
+
+	revision 2018-11-07 {
+		description "Update configd:allowed statements";
+	}
+	revision 2017-10-26 {
+		description "Removed configd configuration scripts";
+	}
+	revision 2017-08-25 {
+		description "Allow tag to be configured for static routes";
+	}
+	revision 2017-06-13 {
+		description "Add next-hop-routing-instance to interface-route";
+	}
+	revision 2017-03-28 {
+		description "Correcting xpath yang grammar sytax != with not operator";
+	}
+	revision 2017-02-06 {
+		description "Updating missing xpath prefix for disable";
+	}
+	revision 2016-07-18 {
+		description "Initial revision of version 1";
+	}
+
+	augment /protocols:protocols/vyatta-static:static/vyatta-static:route {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop";
+			configd:allowed "echo $(/opt/vyatta/share/tmplscripts/routing-instance/routing-instance-list.sh) default";
+			description "Destination Routing Instance for the next-hop";
+			key "routing-instance";
+			uses vyatta-routing:routing-instance-or-default-leaf;
+			uses vyatta-static:static-route-ipv4-next-hop {
+				refine next-hop/interface {
+					must "(1 = count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name =
+						current()/../../routing-instance]/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()]))"{
+						error-message "next-hop interface doesn't belong to routing-instance";
+					}
+				}
+				refine next-hop {
+					must "disable or " +
+						"(not(distance = ../../vyatta-static:blackhole/vyatta-static:distance) and " +
+						"not(distance = ../../vyatta-static:unreachable/vyatta-static:distance) and " +
+						"count(../../../vyatta-static:interface-route[vyatta-static:tagnode = current()/../../vyatta-static:tagnode]/vyatta-static:next-hop-interface[vyatta-static:distance = current()/distance])
+						= count(../../../vyatta-static:interface-route[vyatta-static:tagnode = current()/../../vyatta-static:tagnode]/vyatta-static:next-hop-interface[vyatta-static:distance = current()/distance]/vyatta-static:disable))" {
+						error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable"; 
+					}
+					must "(tag and " +
+						"not(../../next-hop-routing-instance/next-hop[tag != current()/tag][distance = current()/distance]) and " +
+						"not(../../next-hop-routing-instance/next-hop[not(tag)][distance = current()/distance]) and " +
+						"not(../../vyatta-static:next-hop[vyatta-static:tag != current()/tag][vyatta-static:distance = current()/distance]) and " +
+						"not(../../vyatta-static:next-hop[not(vyatta-static:tag)][vyatta-static:distance = current()/distance]))" +
+						"or (not(tag) and " +
+						"not(../../vyatta-static:next-hop[vyatta-static:tag][vyatta-static:distance = current()/distance]))" {
+						error-message "Next-hops with same distance must have same tag";
+					}
+				}
+			}
+			must "not(routing-instance = 'default')" {
+				error-message "inter-vrf route next-hop should be in a different routing-instance.";
+			}
+			must "next-hop" {
+				error-message "Must configure a next-hop.";
+			}
+		}
+	}
+
+	augment /protocols:protocols/vyatta-static:static/vyatta-static:route6 {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop";
+			configd:allowed "echo $(/opt/vyatta/share/tmplscripts/routing-instance/routing-instance-list.sh) default";
+			description "Destination Routing Instance for the next-hop";
+			key "routing-instance";
+			uses vyatta-routing:routing-instance-or-default-leaf;
+			uses vyatta-static:static-route-ipv6-next-hop {
+				refine next-hop/interface {
+					must "(1 = count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name =
+						current()/../../routing-instance]/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()]))"{
+						error-message "next-hop interface doesn't belong to routing-instance";
+					}
+				}
+				refine next-hop {
+					must "disable or " +
+						"(not(distance = ../../vyatta-static:blackhole/vyatta-static:distance) and " +
+						"not(distance = ../../vyatta-static:unreachable/vyatta-static:distance) and " +
+						"count(../../../vyatta-static:interface-route6[vyatta-static:tagnode = current()/../../vyatta-static:tagnode]/vyatta-static:next-hop-interface[vyatta-static:distance = current()/distance])
+						= count(../../../vyatta-static:interface-route6[vyatta-static:tagnode = current()/../../vyatta-static:tagnode]/vyatta-static:next-hop-interface[vyatta-static:distance = current()/distance]/vyatta-static:disable))" {
+						error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable"; 
+					}
+					must "(tag and " +
+						"not(../../next-hop-routing-instance/next-hop[tag != current()/tag][distance = current()/distance]) and " +
+						"not(../../next-hop-routing-instance/next-hop[not(tag)][distance = current()/distance]) and " +
+						"not(../../vyatta-static:next-hop[vyatta-static:tag != current()/tag][vyatta-static:distance = current()/distance]) and " +
+						"not(../../vyatta-static:next-hop[not(vyatta-static:tag)][vyatta-static:distance = current()/distance]))" +
+						"or (not(tag) and " +
+						"not(../../vyatta-static:next-hop[vyatta-static:tag][vyatta-static:distance = current()/distance]))" {
+						error-message "Next-hops with same distance must have same tag";
+					}
+				}
+
+			}
+			must "not(routing-instance = 'default')" { 
+				error-message "inter-vrf route next-hop should be in a different routing-instance.";
+			}
+			must "next-hop" {
+				error-message "Must configure a next-hop.";
+			}
+		}
+	}
+
+
+	augment /vyatta-routing:routing/vyatta-routing:routing-instance/vyatta-routing:protocols/vyatta-static-routing-instance:static/vyatta-static-routing-instance:route {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop";
+			configd:allowed "echo $(/opt/vyatta/share/tmplscripts/routing-instance/routing-instance-list.sh) default";
+			description "Destination Routing Instance for the next-hop";
+			key "routing-instance";
+			uses vyatta-routing:routing-instance-or-default-leaf;
+			uses vyatta-static:static-route-ipv4-next-hop {
+				refine next-hop/interface {
+					must "((current()/../../routing-instance = 'default') and " +
+						"(0 = count(/vyatta-routing:routing/vyatta-routing:routing-instance/
+						routing-instance-interfaces:interface[routing-instance-interfaces:name = current()]))) or " + 
+						"(not(current()/../../routing-instance = 'default') and " +
+						"(1= count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name = current()/../../routing-instance]/
+						routing-instance-interfaces:interface[routing-instance-interfaces:name = current()])))" {
+						error-message "next-hop interface doesn't belong to routing-instance";
+					}
+                                }
+				refine next-hop {
+					must "disable or " +
+						"(not(distance = ../../vyatta-static-routing-instance:blackhole/vyatta-static-routing-instance:distance) and " +
+						"not(distance = ../../vyatta-static-routing-instance:unreachable/vyatta-static-routing-instance:distance) and " +
+						"count(../../../vyatta-static-routing-instance:interface-route[vyatta-static-routing-instance:tagnode = current()/../../vyatta-static-routing-instance:tagnode]/vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:distance = current()/distance])
+						= count(../../../vyatta-static-routing-instance:interface-route[vyatta-static-routing-instance:tagnode = current()/../../vyatta-static-routing-instance:tagnode]/vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:distance = current()/distance]/vyatta-static-routing-instance:disable))" {
+						error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable"; 
+					}
+					must "(tag and " +
+						"not(../../next-hop-routing-instance/next-hop[tag != current()/tag][distance = current()/distance]) and " +
+						"not(../../next-hop-routing-instance/next-hop[not(tag)][distance = current()/distance]) and " +
+						"not(../../vyatta-static-routing-instance:next-hop[vyatta-static-routing-instance:tag != current()/tag][vyatta-static-routing-instance:distance = current()/distance]) and " +
+						"not(../../vyatta-static-routing-instance:next-hop[not(vyatta-static-routing-instance:tag)][vyatta-static-routing-instance:distance = current()/distance]))" +
+						"or (not(tag) and " +
+						"not(../../vyatta-static-routing-instance:next-hop[vyatta-static-routing-instance:tag][vyatta-static-routing-instance:distance = current()/distance]))" {
+						error-message "Next-hops with same distance must have same tag";
+					}
+				}
+			}
+			must "not(routing-instance = current()/../../../../vyatta-routing:instance-name)" {
+				error-message "inter-vrf route next-hop should be in a different routing-instance.";
+			}
+			must "next-hop" {
+				error-message "next-hop must be configured.";
+			}
+		}
+	}
+
+	augment /vyatta-routing:routing/vyatta-routing:routing-instance/vyatta-routing:protocols/vyatta-static-routing-instance:static/vyatta-static-routing-instance:route6 {
+		list next-hop-routing-instance-v6 {
+			configd:help "Destination Routing Instance for the next-hop";
+			configd:allowed "echo $(/opt/vyatta/share/tmplscripts/routing-instance/routing-instance-list.sh) default";
+			description "Destination Routing Instance for the next-hop";
+			key "routing-instance";
+			uses vyatta-routing:routing-instance-or-default-leaf;
+			uses vyatta-static:static-route-ipv6-next-hop {
+				refine next-hop/interface {
+					must "((current()/../../routing-instance = 'default') and " +
+						"(0 = count(/vyatta-routing:routing/vyatta-routing:routing-instance/
+						routing-instance-interfaces:interface[routing-instance-interfaces:name = current()]))) or " +
+						"(not(current()/../../routing-instance = 'default') and " +
+						"(1= count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name = current()/../../routing-instance]/
+						routing-instance-interfaces:interface[routing-instance-interfaces:name = current()])))" {
+						error-message "next-hop interface doesn't belong to routing-instance";
+					}		
+				}
+				refine next-hop {
+					must "disable or " +
+						"(not(distance = ../../vyatta-static-routing-instance:blackhole/vyatta-static-routing-instance:distance) and " +
+						"not(distance = ../../vyatta-static-routing-instance:unreachable/vyatta-static-routing-instance:distance) and " +
+						"count(../../../vyatta-static-routing-instance:interface-route6[vyatta-static-routing-instance:tagnode = current()/../../vyatta-static-routing-instance:tagnode]/vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:distance = current()/distance])
+						= count(../../../vyatta-static-routing-instance:interface-route6[vyatta-static-routing-instance:tagnode = current()/../../vyatta-static-routing-instance:tagnode]/vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:distance = current()/distance]/vyatta-static-routing-instance:disable))" {
+						error-message "Must not configure same distance for next-hop, interface-route and blackhole/unreachable"; 
+					}
+					must "(tag and " +
+						"not(../../next-hop-routing-instance-v6/next-hop[tag != current()/tag][distance = current()/distance]) and " +
+						"not(../../next-hop-routing-instance-v6/next-hop[not(tag)][distance = current()/distance]) and " +
+						"not(../../vyatta-static-routing-instance:next-hop[vyatta-static-routing-instance:tag != current()/tag][vyatta-static-routing-instance:distance = current()/distance]) and " +
+						"not(../../vyatta-static-routing-instance:next-hop[not(vyatta-static-routing-instance:tag)][vyatta-static-routing-instance:distance = current()/distance]))" +
+						"or (not(tag) and " +
+						"not(../../vyatta-static-routing-instance:next-hop[vyatta-static-routing-instance:tag][vyatta-static-routing-instance:distance = current()/distance]))" {
+						error-message "Next-hops with same distance must have same tag";
+					}
+				}
+			}
+			must "not(routing-instance = current()/../../../../vyatta-routing:instance-name)" {
+				error-message "inter-vrf route next-hop should be in a different routing-instance.";
+			}
+			must "next-hop" {
+				error-message "next-hop must be configured.";
+			}
+		}
+	}
+
+	augment /protocols:protocols/vyatta-static:static/vyatta-static:interface-route {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop interface";
+			description "Destination Routing Instance for the next-hop interface";
+			key "routing-instance";
+			leaf routing-instance {
+				type leafref {
+					path "/vyatta-routing:routing/vyatta-routing:routing-instance/vyatta-routing:instance-name";
+				}
+			}
+			list next-hop-interface {
+				configd:help "Next-hop interface";
+				min-elements 1;
+				must "disable or " +
+					"not(../../../vyatta-static:route[vyatta-static:tagnode = current()/../../vyatta-static:tagnode])" {
+						error-message "Must not configure with next-hop/blackhole/unreachable route for same prefix";
+				}
+				must "(1 = count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name = current()/../routing-instance]/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()/interface-name]))"{
+					error-message "next-hop interface doesn't belong to routing-instance";
+				}
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+				key "interface-name";
+				leaf interface-name {
+					type types:interface-ifname;
+					configd:help "Next-hop interface";
+				}
+				leaf disable {
+					type empty;
+					configd:help "Disable IPv4 interface static route";
+				}
+				uses vyatta-static:static-route-distance;
+				uses vyatta-static:static-route-tag;
+				must "(tag and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[tag != current()/tag][distance = current()/distance]) and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[not(tag)][distance = current()/distance]) and " +
+					"not(../../vyatta-static:next-hop-interface[vyatta-static:tag != current()/tag][vyatta-static:distance = current()/distance]) and " +
+					"not(../../vyatta-static:next-hop-interface[not(vyatta-static:tag)][vyatta-static:distance = current()/distance]))" +
+					"or (not(tag) and " +
+					"not(../../vyatta-static:next-hop-interface[vyatta-static:tag][vyatta-static:distance = current()/distance]))" {
+					error-message "Next-hops with same distance must have same tag";
+				}
+			}
+		}
+	}
+
+	augment /protocols:protocols/vyatta-static:static/vyatta-static:interface-route6 {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop interface";
+			description "Destination Routing Instance for the next-hop interface";
+			key "routing-instance";
+			leaf routing-instance {
+				type leafref {
+					path "/vyatta-routing:routing/vyatta-routing:routing-instance/vyatta-routing:instance-name";
+				}
+			}
+			list next-hop-interface {
+				configd:help "Next-hop interface";
+				min-elements 1;
+				must "disable or " +
+					"not(../../../vyatta-static:route6[vyatta-static:tagnode = current()/../../vyatta-static:tagnode])" {
+						error-message "Must not configure with next-hop/blackhole/unreachable route for same prefix";
+				}
+				must "(1 = count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name = current()/../routing-instance]/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()/interface-name]))"{
+					error-message "next-hop interface doesn't belong to routing-instance";
+				}
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+				key "interface-name";
+				leaf interface-name {
+					type types:interface-ifname;
+					configd:help "Next-hop interface";
+				}
+				leaf disable {
+					type empty;
+					configd:help "Disable IPv6 interface static route";
+				}
+				uses vyatta-static:static-route-distance;
+				uses vyatta-static:static-route-tag;
+				must "(tag and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[tag != current()/tag][distance = current()/distance]) and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[not(tag)][distance = current()/distance]) and " +
+					"not(../../vyatta-static:next-hop-interface[vyatta-static:tag != current()/tag][vyatta-static:distance = current()/distance]) and " +
+					"not(../../vyatta-static:next-hop-interface[not(vyatta-static:tag)][vyatta-static:distance = current()/distance]))" +
+					"or (not(tag) and " +
+					"not(../../vyatta-static:next-hop-interface[vyatta-static:tag][vyatta-static:distance = current()/distance]))" {
+					error-message "Next-hops with same distance must have same tag";
+				}
+			}
+		}
+	}
+
+	augment /vyatta-routing:routing/vyatta-routing:routing-instance/vyatta-routing:protocols/vyatta-static-routing-instance:static/vyatta-static-routing-instance:interface-route {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop interface";
+			configd:allowed "echo $(/opt/vyatta/share/tmplscripts/routing-instance/routing-instance-list.sh) default";
+			description "Destination Routing Instance for the next-hop interface";
+			key "routing-instance";
+			uses vyatta-routing:routing-instance-or-default-leaf;
+			list next-hop-interface {
+				configd:help "Next-hop interface";
+				min-elements 1;
+				must "disable or " +
+					"not(../../../vyatta-static-routing-instance:route[vyatta-static-routing-instance:tagnode = current()/../../vyatta-static-routing-instance:tagnode])" {
+						error-message "Must not configure with next-hop/blackhole/unreachable route for same prefix";
+				}
+				must "((current()/../routing-instance = 'default') and " +
+					"(0 = count(/vyatta-routing:routing/vyatta-routing:routing-instance/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()/interface-name]))) or " +
+					"(not(current()/../routing-instance = 'default') and " +
+					"(1 = count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name = current()/../routing-instance]/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()/interface-name])))" {
+					error-message "next-hop-interface doesn't belong to routing-instance";
+				}
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+				key "interface-name";
+				leaf interface-name {
+					type types:interface-ifname;
+					configd:help "Next-hop interface";
+				}
+				leaf disable {
+					type empty;
+					configd:help "Disable IPv4 interface static route";
+				}
+				uses vyatta-static:static-route-distance;
+				uses vyatta-static:static-route-tag;
+				must "(tag and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[tag != current()/tag][distance = current()/distance]) and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[not(tag)][distance = current()/distance]) and " +
+					"not(../../vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:tag != current()/tag][vyatta-static-routing-instance:distance = current()/distance]) and " +
+					"not(../../vyatta-static-routing-instance:next-hop-interface[not(vyatta-static-routing-instance:tag)][vyatta-static-routing-instance:distance = current()/distance]))" +
+					"or (not(tag) and " +
+					"not(../../vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:tag][vyatta-static-routing-instance:distance = current()/distance]))" {
+					error-message "Next-hops with same distance must have same tag";
+				}
+			}
+			must "not(routing-instance = current()/../../../../vyatta-routing:instance-name)" {
+				error-message "inter-vrf route next-hop-interface should be in a different routing-instance.";
+			}
+		}
+	}
+
+	augment /vyatta-routing:routing/vyatta-routing:routing-instance/vyatta-routing:protocols/vyatta-static-routing-instance:static/vyatta-static-routing-instance:interface-route6 {
+		list next-hop-routing-instance {
+			configd:help "Destination Routing Instance for the next-hop interface";
+			configd:allowed "echo $(/opt/vyatta/share/tmplscripts/routing-instance/routing-instance-list.sh) default";
+			description "Destination Routing Instance for the next-hop interface";
+			key "routing-instance";
+			uses vyatta-routing:routing-instance-or-default-leaf;
+			list next-hop-interface {
+				configd:help "Next-hop interface";
+				min-elements 1;
+				must "disable or " +
+					"not(../../../vyatta-static-routing-instance:route6[vyatta-static-routing-instance:tagnode = current()/../../vyatta-static-routing-instance:tagnode])" {
+						error-message "Must not configure with next-hop/blackhole/unreachable route for same prefix";
+				}
+				must "((current()/../routing-instance = 'default') and " +
+					"(0 = count(/vyatta-routing:routing/vyatta-routing:routing-instance/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()/interface-name]))) or " +
+					"(not(current()/../routing-instance = 'default') and " +
+					"(1 = count(/vyatta-routing:routing/vyatta-routing:routing-instance[vyatta-routing:instance-name = current()/../routing-instance]/routing-instance-interfaces:interface[routing-instance-interfaces:name = current()/interface-name])))" {
+					error-message "next-hop-interface doesn't belong to routing-instance";
+				}
+				configd:allowed "/opt/vyatta/sbin/vyatta-interfaces.pl --show all";
+				key "interface-name";
+				leaf interface-name {
+					type types:interface-ifname;
+					configd:help "Next-hop interface";
+				}
+				leaf disable {
+					type empty;
+					configd:help "Disable IPv6 interface static route";
+				}
+				uses vyatta-static:static-route-distance;
+				uses vyatta-static:static-route-tag;
+				must "(tag and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[tag != current()/tag][distance = current()/distance]) and " +
+					"not(../../next-hop-routing-instance/next-hop-interface[not(tag)][distance = current()/distance]) and " +
+					"not(../../vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:tag != current()/tag][vyatta-static-routing-instance:distance = current()/distance]) and " +
+					"not(../../vyatta-static-routing-instance:next-hop-interface[not(vyatta-static-routing-instance:tag)][vyatta-static-routing-instance:distance = current()/distance]))" +
+					"or (not(tag) and " +
+					"not(../../vyatta-static-routing-instance:next-hop-interface[vyatta-static-routing-instance:tag][vyatta-static-routing-instance:distance = current()/distance]))" {
+					error-message "Next-hops with same distance must have same tag";
+				}
+			}
+			must "not(routing-instance = current()/../../../../vyatta-routing:instance-name)" {
+				error-message "inter-vrf route next-hop-interface should be in a different routing-instance.";
+			}
+		}
+	}
+}

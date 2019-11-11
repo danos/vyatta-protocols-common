@@ -1,0 +1,258 @@
+module vyatta-op-common-protocols-policy-route-v1 {
+	namespace "urn:vyatta.com.mgmt:vyatta-op-common-protocols-policy-route:1";
+	prefix vyatta-op-common-protocols-policy-route-v1;
+
+	import vyatta-types-v1 {
+		prefix types;
+	}
+	import vyatta-opd-extensions-v1 {
+		prefix opd;
+	}
+	import vyatta-op-show-v1 {
+		prefix op-show;
+	}
+	import vyatta-op-show-ip-ipv6-v1 {
+		prefix op-show-ip;
+	}
+
+
+	organization "AT&T, Inc.";
+	contact
+		"AT&T
+		Postal: 208 S. Akard Street
+			Dallas, TX 75202
+		Web: www.att.com";
+
+	description
+		"Copyright (c) 2018-2019, AT&T Intellectual Property.
+		All rights reserved.
+
+		 Redistribution and use in source and binary forms, with or
+		 without modification, are permitted provided that the following
+		 conditions are met:
+
+		 1. Redistributions of source code must retain the above copyright
+			notice, this list of conditions and the following disclaimer.
+		 2. Redistributions in binary form must reproduce the above
+			copyright notice, this list of conditions and the following
+			disclaimer in the documentation and/or other materials provided
+			with the distribution.
+		 3. Neither the name of the copyright holder nor the names of its
+			contributors may be used to endorse or promote products derived
+			from this software without specific prior written permission.
+
+		 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		 COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		 LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		 POSSIBILITY OF SUCH DAMAGE.
+
+		 SPDX-License-Identifier: BSD-3-Clause
+
+		This module implements operational commands for access-lists,
+		prefix-lists, community-lists, extcommunity-lists, and route-maps";
+
+	revision 2018-11-15 {
+		description "Initial revision";
+	}
+
+	grouping prefix-lookup {
+		opd:argument match-type {
+			opd:help "Type of matching to perform";
+			opd:on-enter 'vtysh -c "show ip $2 prefix-list $4 $5 $6"';
+			opd:privileged true;
+			type enumeration {
+				enum "first-match" {
+					opd:help "First matched prefix";
+				}
+				enum "longer" {
+					opd:help "Lookup longer prefix";
+				}
+			}
+		}
+	}
+
+	grouping specific-prefix-list {
+		opd:argument prefix-list-name {
+			opd:help "Show specific IP prefix-list";
+			opd:on-enter 'vtysh -c "show ip prefix-list $3 $4"';
+			opd:allowed 'allowed-nodes policy route prefix-list';
+			opd:privileged true;
+			type string;
+		}
+	}
+
+	grouping specific-prefix6-list {
+		opd:argument prefix-list-name {
+			opd:help "Show specific IPv6 prefix-list";
+			opd:on-enter 'vtysh -c "show ipv6 prefix-list $3 $4"';
+			opd:allowed 'allowed-nodes policy route prefix-list6';
+			opd:privileged true;
+			type string;
+		}
+	}
+
+	opd:augment /op-show:show/op-show-ip:ip {
+		opd:command access-list {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show all IP access-lists";
+
+			opd:argument access-list-name {
+				opd:help "Show specific IP access-list";
+				opd:allowed 'allowed-nodes policy route access-list';
+				type string;
+			}
+		}
+
+		opd:command community-list {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show all IP community-lists";
+
+			opd:argument community-list-name {
+				opd:help "Show specific IP community-list";
+				opd:allowed 'vyatta-policy.pl --op-list-community community-list';
+				type string;
+			}
+		}
+
+		opd:command extcommunity-list {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show all extended IP community-lists";
+
+			opd:argument extcommunity-list-name {
+				opd:help "Show specific IP extcommunity-list";
+				opd:allowed 'vyatta-policy.pl --op-list-community extcommunity-list';
+				type string;
+			}
+		}
+
+		opd:command prefix-list {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show all IP prefix-lists";
+
+			opd:command detail {
+				opd:help "Show detail of IP prefix-lists";
+
+				uses specific-prefix-list;
+			}
+
+			opd:command summary {
+				opd:help "Show summary of IP prefix-lists";
+
+				uses specific-prefix-list;
+			}
+
+			opd:argument prefix-list-name {
+				opd:help "Show specific IP prefix-list";
+				opd:allowed 'allowed-nodes policy route prefix-list';
+				type string;
+
+				opd:argument ipv4-prefix {
+					opd:help "Show select prefix of specified IP prefix-list";
+					type types:ipv4-prefix;
+
+					uses prefix-lookup;
+				}
+
+				opd:option seq {
+					opd:help "Show specified sequence from specific IP prefix-list";
+					type string;
+				}
+			}
+		}
+
+		opd:command protocol {
+			opd:privileged true;
+			opd:on-enter 'vtysh -c "${@}"';
+			opd:help "Show IP route-map per protocol";
+		}
+	}
+	opd:augment /op-show:show/op-show-ip:ipv6 {
+		opd:command access-list {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show all IPv6 access-lists";
+
+			opd:argument access-list-name {
+				opd:help "Show specific IPv6 access-list";
+				opd:allowed 'allowed-nodes policy route access-list6';
+				type string;
+			}
+		}
+
+		opd:command prefix-list {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show all IPv6 prefix-lists";
+
+			opd:command detail {
+				opd:help "Show detail of IPv6 prefix-lists";
+
+				uses specific-prefix6-list;
+			}
+
+			opd:command summary {
+				opd:help "Show summary of IPv6 prefix-lists";
+
+				uses specific-prefix6-list;
+			}
+
+			opd:argument prefix-list-name {
+				opd:help "Show specific IPv6 prefix-list";
+				opd:allowed 'allowed-nodes policy route prefix-list6';
+				type string;
+
+				opd:argument ipv6-prefix {
+					opd:help "Show select prefix of specified IPv6 prefix-list";
+					type types:ipv6-prefix;
+
+					uses prefix-lookup;
+				}
+
+				opd:option seq {
+					opd:help "Show specified sequence from specific IPv6 prefix-list";
+					type string;
+				}
+			}
+		}
+	}
+	opd:augment /op-show:show {
+		opd:command route-map {
+			opd:inherit "Using vtysh needs privileges" {
+				opd:privileged true;
+				opd:on-enter 'vtysh -c "${@}"';
+			}
+			opd:help "Show route-map information";
+
+			opd:argument route-map-name {
+				opd:help "Show specific route-map information";
+				opd:allowed 'allowed-nodes policy route route-map';
+				type string;
+			}
+		}
+	}
+}
+

@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# Copyright (c) 2018-2019, AT&T Intellectual Property. All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# The purpose of this script is to block tables from being deleted
+# when they are still in use by static routes. An exit code of zero
+# indicates the table may be deleted and non-zero indicates it should
+# be retained.
+#
+
+vrf="$1"
+table="$2"
+rdpath=""
+
+if [ "$vrf" != "default" ]; then
+    rdpath="routing routing-instance $vrf"
+fi
+
+! cli-shell-api existsActive $rdpath protocols static table "$table"

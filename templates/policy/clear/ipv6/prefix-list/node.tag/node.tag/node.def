@@ -1,0 +1,3 @@
+help: Clear prefix-list statistics or status for given word|network
+allowed: echo -n '<h:h:h:h:h:h:h:h/x>'
+run: vtysh -c "$*"

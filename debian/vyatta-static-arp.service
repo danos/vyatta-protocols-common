@@ -1,0 +1,9 @@
+[Unit]
+Description=Vyatta Static Arp Service
+After=network.target
+
+[Service]
+ExecStart=/opt/vyatta/sbin/arp.py /etc/vyatta-routing/rib.json
+
+[Install]
+WantedBy=multi-user.target

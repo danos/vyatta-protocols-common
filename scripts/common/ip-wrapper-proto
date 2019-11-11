@@ -1,0 +1,9 @@
+# ip command wrapper invoked from vyatta-enter-hook
+
+# When DHCP routes are added, set the protocol to DHCP
+# so that ribd will recognise them.
+if [ "$1" = '-4' ] && [ "$2" = 'route' ] && [ "$3" = 'add' ]; then
+	set -- "$@" proto dhcp metric 1
+elif [ "$1" = 'route' ] && [ "$2" = 'add' ]; then
+	set -- "$@" proto dhcp metric 1
+fi

@@ -1,0 +1,5 @@
+#!/usr/bin/dh-exec
+
+scripts/common/vyatta_routing_utils.pl opt/vyatta/sbin/
+scripts/common/ip-wrapper-proto /etc/dhcp/ip-wrappers
+scripts/common/transform-rfc7951-json/transform_rfc7951_json.py => opt/vyatta/bin/transform-rfc7951-json

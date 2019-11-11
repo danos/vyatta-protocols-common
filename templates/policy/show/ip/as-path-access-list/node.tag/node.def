@@ -1,0 +1,2 @@
+help: Show specified as-path-access-list
+run: ${vyatta_bindir}/vtyshow.pl "$@"

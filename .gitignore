@@ -1,0 +1,14 @@
+*~
+*.orig
+*#
+.*.swp
+debian/files
+debian/tmp
+debian/vyatta-protocols-common
+debian/vyatta-static-pbr-tables-feature
+debian/vyatta-static-pbr-tables-routing-instance-feature
+debian/vyatta-static-arp
+debian/golang-vyatta-protocols-dev
+debian/*.debhelper.log
+debian/*.substvars
+debian/*-yang

@@ -1,0 +1,2 @@
+etc/vrf-manager-del-table.d/static* opt/vyatta/etc/vrf-manager-del-table.d/
+yang/vyatta-protocols-static-v1.yang usr/share/configd/yang/
