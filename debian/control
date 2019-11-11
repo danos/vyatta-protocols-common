@@ -35,7 +35,7 @@ Suggests:
  net-tools,
  ntpdate,
  util-linux (>= 2.13-5)
-Breaks: vyatta-protocols (<< 1.12.0)
+Breaks: vyatta-protocols (<< 1.12.0), vyatta-service-snmp (<< 0.31)
 Replaces: vyatta-protocols (<< 1.12.0)
 Description: common package
  Configuration for vyatta-protocols, common scripts, tmplscripts

@@ -1,3 +1,9 @@
+vyatta-protocols-common (1.13.2) unstable; urgency=medium
+
+  * DANOS Import Master
+
+ -- Vyatta Package Maintainers <DL-vyatta-help@att.com>  Thu, 07 Nov 2019 14:51:08 +0000
+
 vyatta-protocols-common (1.12.7) unstable; urgency=medium
 
   * DANOS Import

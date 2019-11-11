@@ -57,6 +57,9 @@ module vyatta-protocols-static-v1 {
 
 		 This module implements vyatta-protocols-static-v1.";
 
+	revision 2019-05-24 {
+		description "Added description to routes and tables.";
+	}
 	revision 2018-12-06 {
 		description "Modify error messages to be relevant for delete action also";
 	}
@@ -133,7 +136,15 @@ module vyatta-protocols-static-v1 {
 			configd:help "Disable IPv4 next-hop static route";
 			description "Disable IPv4 next-hop static route";
 		}
-	}		
+	}
+
+	grouping static-route-description {
+		leaf description {
+			type string;
+			configd:help "Textual description of the route";
+			description "Textual description of the route";
+		}
+	}
 
 	// This grouping has dependency on the external route list node referenced via a relative path.
 	grouping static-route-ipv4-next-hop {
@@ -279,6 +290,7 @@ module vyatta-protocols-static-v1 {
 					configd:help "Discard packets with ICMP unreachable";
 					uses static-route-distance;
 				}
+				uses static-route-description;
 			}
 			list route6 {
 				configd:help "Static IPv6 route";
@@ -337,6 +349,7 @@ module vyatta-protocols-static-v1 {
 					configd:help "Discard packets with ICMP unreachable";
 					uses static-route-distance;
 				}
+				uses static-route-description;
 			}
 			list interface-route {
 				configd:help "Interface based static route";
@@ -369,6 +382,7 @@ module vyatta-protocols-static-v1 {
 					}
 					uses static-route-distance;
 				}
+				uses static-route-description;
 			}
 			list interface-route6 {
 				configd:help "Interface based static route";
@@ -401,6 +415,12 @@ module vyatta-protocols-static-v1 {
 					}
 					uses static-route-distance;
 				}
+				uses static-route-description;
+			}
+			leaf description {
+				type string;
+				configd:help "Textual description of the table";
+				description "Textual description of the table";
 			}
 		}
 	}
@@ -439,6 +459,7 @@ module vyatta-protocols-static-v1 {
 				uses static-route-distance;
 				uses static-route-tag;
 			}
+			uses static-route-description;
 		}
 		list arp {
 			configd:priority "525";
@@ -494,6 +515,7 @@ module vyatta-protocols-static-v1 {
 				uses static-route-distance;
 				uses static-route-tag;
 			}
+			uses static-route-description;
 		}
 		list interface-route {
 			configd:help "Interface based static route";
@@ -532,6 +554,7 @@ module vyatta-protocols-static-v1 {
 					error-message "Next-hops with same distance must have same tag";
 				}
 			}
+			uses static-route-description;
 		}
 		list interface-route6 {
 			configd:help "Interface based IPv6 static route";
@@ -570,6 +593,7 @@ module vyatta-protocols-static-v1 {
 					error-message "Next-hops with same distance must have same tag";
 				}
 			}
+			uses static-route-description;
 		}
 	}
 

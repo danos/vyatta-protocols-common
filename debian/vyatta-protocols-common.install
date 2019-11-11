@@ -3,3 +3,5 @@
 scripts/common/vyatta_routing_utils.pl opt/vyatta/sbin/
 scripts/common/ip-wrapper-proto /etc/dhcp/ip-wrappers
 scripts/common/transform-rfc7951-json/transform_rfc7951_json.py => opt/vyatta/bin/transform-rfc7951-json
+scripts/common/tech-support/* opt/vyatta/share/vyatta-op/functions/tech-support.d
+scripts/common/tech-support/0800-vyatta-protocols-common opt/vyatta/share/vyatta-op/functions/tech-support-brief.d

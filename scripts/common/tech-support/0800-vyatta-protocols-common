@@ -1,0 +1,79 @@
+#!/bin/vcli -f
+#
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+# Copyright (c) 2014-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+#
+
+source "$(cd "$(dirname "${0}")" && pwd -P)"/../tech-support.functions
+
+show_route_limit()
+{
+	local limit=$1
+	local vrf_name=$2
+	local af=$3
+
+	CMD="run show $af route"
+	if [ "$vrf_name" != "default" ]; then
+		CMD="$CMD routing-instance $vrf_name"
+	fi
+	[ $# -gt 3 ] && CMD="$CMD ${*:4}"
+
+	if [ "$limit" -eq 0 ]; then
+		header CLI: "$CMD"
+		$CMD
+	else
+		header "CLI: $CMD - limit $limit"
+		$CMD | head -n "$limit"
+	fi
+}
+
+show_route_limit_prot()
+{
+	local limit=$1
+	local vrf_name=$2
+	local af=$3
+	local protocol=$4
+
+	if [ "$vrf_name" != "default" ]; then
+		if ! cli-shell-api exists routing routing-instance "$vrf_name" \
+				protocols "$protocol"; then
+			return
+		fi
+	elif ! cli-shell-api exists protocols "$protocol"; then
+		return
+	fi
+
+	show_route_limit "$limit" "$vrf_name" "$af" "$protocol"
+}
+
+vrf_names=(default $(cli-shell-api listActiveNodes routing routing-instance | tr -d \'))
+for vrf_name in "${vrf_names[@]}"; do
+
+	if [ "$vrf_name" == "default" ]; then
+		header ROUTING "$DEFAULT_VRF_NAME"
+	else
+		header ROUTING - Routing Instance: "$vrf_name"
+	fi
+
+	#
+	# show all connected/static, limit the others to 500 lines
+	#
+	show_route_limit 500 "$vrf_name" ip
+	show_route_limit 0 "$vrf_name" ip summary
+	show_route_limit 0 "$vrf_name" ip connected
+	show_route_limit_prot 0 "$vrf_name" ip static
+	show_route_limit_prot 500 "$vrf_name" ip rip
+	show_route_limit_prot 500 "$vrf_name" ip ospf
+	show_route_limit_prot 500 "$vrf_name" ip bgp
+
+	show_route_limit 500 "$vrf_name" ipv6
+	show_route_limit 0 "$vrf_name" ipv6 summary
+	show_route_limit 0 "$vrf_name" ipv6 connected
+	show_route_limit_prot 0 "$vrf_name" ipv6 static
+	show_route_limit_prot 500 "$vrf_name" ipv6 ripng
+	show_route_limit_prot 500 "$vrf_name" ipv6 ospfv3
+	show_route_limit_prot 500 "$vrf_name" ipv6 bgp
+done

@@ -12,10 +12,9 @@
 
 use strict;
 use warnings;
-use NetAddr::IP;
 use Getopt::Long;
 
-my ( $prefix, $clist_community, $rmap_community );
+my ( $clist_community, $rmap_community );
 
 # Allowed well-know community values (see set community)
 my %communities = (
@@ -26,31 +25,14 @@ my %communities = (
 );
 
 GetOptions(
-    "check-prefix-boundry=s" =>   \$prefix,
     "check-clist-community"  =>   \$clist_community,
     "check-rmap-community"   =>   \$rmap_community,
 );
 
 check_clist_community(@ARGV)   if ($clist_community);
 check_rmap_community(@ARGV)    if ($rmap_community);
-check_prefix_boundry($prefix)  if ($prefix);
 
 exit 0;
-
-sub check_prefix_boundry {
-    my $prefix = shift;
-    my ( $net, $network, $cidr );
-
-    $net     = new NetAddr::IP $prefix;
-    $network = $net->network()->cidr();
-    $cidr    = $net->cidr();
-
-    die "Your prefix must fall on a natural network boundry.  ",
-      "Did you mean $network?\n"
-      if ( $cidr ne $network );
-
-    exit 0;
-}
 
 sub check_clist_community {
     foreach my $arg (@_) {
