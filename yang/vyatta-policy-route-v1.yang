@@ -1049,6 +1049,10 @@ module vyatta-policy-route-v1 {
 								configd:help "Source protocol to be matched";
 							}
 						}
+						leaf local-preference {
+							type uint32;
+							configd:help "Border Gateway Protocol (BGP) local preference attribute";
+						}
 						leaf origin {
 							type enumeration {
 								enum "egp" {
