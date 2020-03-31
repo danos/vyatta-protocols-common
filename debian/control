@@ -72,6 +72,12 @@ Depends: ${misc:Depends}, ${yang:Depends}
 Description: "show protocols" operational YANG module
  The YANG module package for vyatta-op-show-protocols-v1-yang
 
+Package: vyatta-op-clear-protocols-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: "clear protocols" operational YANG module
+ The YANG module package for vyatta-op-clear-protocols-v1-yang
+
 Package: vyatta-op-reset-protocols-v1-yang
 Architecture: all
 Depends: ${misc:Depends}, ${yang:Depends}
