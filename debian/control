@@ -1,6 +1,6 @@
 Source: vyatta-protocols-common
 Section: contrib/net
-Priority: extra
+Priority: optional
 Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>
 Build-Depends:
  debhelper (>= 9),
@@ -236,7 +236,7 @@ Description: YANG modules for common RIPNG routing instance op commands
 
 Package: vyatta-static-arp
 Architecture: any
-Priority: extra
+Priority: optional
 Depends: iproute2, python3, ${misc:Depends}
 Description: static arp service
  Service for maintaining static arp configuration
