@@ -95,6 +95,8 @@ type ProtocolsModelComponentMeaningfulConfigFunc func(*ProtocolsModelComponent, 
  */
 type ProtocolsModelComponent struct {
 	modelName      string
+	rpcName        string
+	rpc            interface{}
 	component      vci.Component
 	configFileName string
 	daemons        map[string]*ProtocolsDaemon
@@ -127,7 +129,14 @@ func (pmc *ProtocolsModelComponent) Run(componentName string) error {
 	}
 
 	pmc.component = vci.NewComponent(componentName)
-	pmc.component.Model(pmc.GetModelName()).Config(pmc)
+
+	if pmc.rpc != nil {
+		pmc.component.Model(pmc.GetModelName()).
+			Config(pmc).
+			RPC(pmc.GetRPCName(), pmc.rpc)
+	} else {
+		pmc.component.Model(pmc.GetModelName()).Config(pmc)
+	}
 
 	err := pmc.component.Run()
 	if err != nil {
@@ -151,6 +160,11 @@ func (pmc *ProtocolsModelComponent) Run(componentName string) error {
 	}
 
 	return ret
+}
+
+func (pmc *ProtocolsModelComponent) SetRPC(rpcName string, rpc interface{}) {
+	pmc.rpcName = rpcName
+	pmc.rpc = rpc
 }
 
 func (pmc *ProtocolsModelComponent) SetCheckFunction(checkFunc ProtocolsModelComponentCheckFunc) {
@@ -205,6 +219,13 @@ func (pmc *ProtocolsModelComponent) GetSystemConfigFilePath() string {
  */
 func (pmc *ProtocolsModelComponent) GetModelName() string {
 	return pmc.modelName
+}
+
+/*
+ * Returns the rpc name of this component
+ */
+func (pmc *ProtocolsModelComponent) GetRPCName() string {
+	return pmc.rpcName
 }
 
 /*
