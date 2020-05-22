@@ -95,8 +95,7 @@ type ProtocolsModelComponentMeaningfulConfigFunc func(*ProtocolsModelComponent, 
  */
 type ProtocolsModelComponent struct {
 	modelName      string
-	rpcName        string
-	rpc            interface{}
+	model          vci.Model
 	component      vci.Component
 	configFileName string
 	daemons        map[string]*ProtocolsDaemon
@@ -107,7 +106,10 @@ type ProtocolsModelComponent struct {
 	args           *CommonArgs
 }
 
-func NewProtocolsModelComponent(modelName string, configFileName string) *ProtocolsModelComponent {
+func NewProtocolsModelComponent(
+	componentName, modelName, configFileName string,
+) *ProtocolsModelComponent {
+
 	pmc := &ProtocolsModelComponent{}
 	pmc.daemons = make(map[string]*ProtocolsDaemon)
 	pmc.modelName = modelName
@@ -120,24 +122,14 @@ func NewProtocolsModelComponent(modelName string, configFileName string) *Protoc
 		panic("Daemon and system config file paths are identical!")
 	}
 
+	pmc.component = vci.NewComponent(componentName)
+	pmc.model = pmc.component.Model(pmc.GetModelName())
+	pmc.model.Config(pmc)
+
 	return pmc
 }
 
-func (pmc *ProtocolsModelComponent) Run(componentName string) error {
-	if pmc.component != nil {
-		panic("Component already instantiated!")
-	}
-
-	pmc.component = vci.NewComponent(componentName)
-
-	if pmc.rpc != nil {
-		pmc.component.Model(pmc.GetModelName()).
-			Config(pmc).
-			RPC(pmc.GetRPCName(), pmc.rpc)
-	} else {
-		pmc.component.Model(pmc.GetModelName()).Config(pmc)
-	}
-
+func (pmc *ProtocolsModelComponent) Run() error {
 	err := pmc.component.Run()
 	if err != nil {
 		return err
@@ -163,8 +155,7 @@ func (pmc *ProtocolsModelComponent) Run(componentName string) error {
 }
 
 func (pmc *ProtocolsModelComponent) SetRPC(rpcName string, rpc interface{}) {
-	pmc.rpcName = rpcName
-	pmc.rpc = rpc
+	pmc.model.RPC(rpcName, rpc)
 }
 
 func (pmc *ProtocolsModelComponent) SetCheckFunction(checkFunc ProtocolsModelComponentCheckFunc) {
@@ -219,13 +210,6 @@ func (pmc *ProtocolsModelComponent) GetSystemConfigFilePath() string {
  */
 func (pmc *ProtocolsModelComponent) GetModelName() string {
 	return pmc.modelName
-}
-
-/*
- * Returns the rpc name of this component
- */
-func (pmc *ProtocolsModelComponent) GetRPCName() string {
-	return pmc.rpcName
 }
 
 /*
