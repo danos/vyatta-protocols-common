@@ -1,3 +1,18 @@
+vyatta-protocols-common (1.14.0) UNRELEASED; urgency=medium
+
+  [ Mark Gillott ]
+  * Eliminate some of the lintian warnings
+  * Add base YANG for "clear protocols ..." operational commands
+    (Fixes: VRVDR-44631)
+  * Update copyright date in debian/copyright
+  * protocols: add VCI RPC infrastructure support
+
+  [ Duncan Eastoe ]
+  * Re-work ProtocolsModelComponent constructor
+  * Run 'gofmt -l -w lib/go'
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Fri, 22 May 2020 16:51:36 +0100
+
 vyatta-protocols-common (1.13.2) unstable; urgency=medium
 
   * DANOS Import Master

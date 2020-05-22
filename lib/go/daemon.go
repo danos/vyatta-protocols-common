@@ -6,8 +6,8 @@
 package protocols
 
 import (
-	"github.com/danos/vci/services"
 	log "github.com/Sirupsen/logrus"
+	"github.com/danos/vci/services"
 	"sync"
 	"time"
 )

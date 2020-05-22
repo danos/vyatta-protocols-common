@@ -469,7 +469,7 @@ func ConvertFromRfc7951Json(rfc7591_json []byte) ([]byte, error) {
 	}
 
 	strip_cmd := exec.Command("/opt/vyatta/bin/transform-rfc7951-json",
-				  "-f", tmpfile.Name())
+		"-f", tmpfile.Name())
 	return strip_cmd.CombinedOutput()
 }
 
