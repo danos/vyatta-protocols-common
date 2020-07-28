@@ -1,4 +1,4 @@
-vyatta-protocols-common (1.14.0) UNRELEASED; urgency=medium
+vyatta-protocols-common (1.14.0) unstable; urgency=medium
 
   [ Mark Gillott ]
   * Eliminate some of the lintian warnings
@@ -11,7 +11,10 @@ vyatta-protocols-common (1.14.0) UNRELEASED; urgency=medium
   * Re-work ProtocolsModelComponent constructor
   * Run 'gofmt -l -w lib/go'
 
- -- Duncan Eastoe <duncan.eastoe@att.com>  Fri, 22 May 2020 16:51:36 +0100
+  [ Michael Littlejohn ]
+  * Correctly escape hyphen character in community-list string patterns
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Tue, 28 Jul 2020 11:29:00 +0100
 
 vyatta-protocols-common (1.13.2) unstable; urgency=medium
 
