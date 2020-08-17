@@ -84,6 +84,12 @@ Depends: ${misc:Depends}, ${yang:Depends}
 Description: "reset protocols" operational YANG module
  The YANG module package for vyatta-op-reset-protocols-v1-yang
 
+Package: vyatta-op-restart-protocols-v1-yang
+Architecture: all
+Depends: ${misc:Depends}, ${yang:Depends}
+Description: "restart protocols" operational YANG module
+ The YANG module package for vyatta-op-restart-protocols-v1-yang
+
 Package: vyatta-op-monitor-protocols-v1-yang
 Architecture: all
 Depends: ${misc:Depends}, ${yang:Depends}
