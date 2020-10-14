@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019, AT&T Intellectual Property.
+// Copyright (c) 2017-2020, AT&T Intellectual Property.
 // All rights reserved.
 //
 // SPDX-License-Identifier: MPL-2.0
@@ -8,6 +8,7 @@ package protocols
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
@@ -20,6 +21,7 @@ import (
 	"os/user"
 	"path"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -74,6 +76,19 @@ func ParseJsonComponentConfig(cfg []byte) (*ProtocolsModelComponentConfig, error
 	return &pmc_cfg, nil
 }
 
+/*
+ * ProtocolsSubscription defines everything needed to subscribe
+ * and react to VCI event notifications.
+ * When the event matching "Namespace:Event" is seen on
+ * the VCI bus the CallbackFunc will be run.
+ */
+type ProtocolsSubscription struct {
+	Namespace       string
+	Event           string
+	CallbackFunc    func(in string)
+	SubscriptionObj *vci.Subscription
+}
+
 type CommonArgs struct {
 	User string
 }
@@ -82,6 +97,8 @@ type ProtocolsModelComponentCheckFunc func(*ProtocolsModelComponent, []byte) err
 type ProtocolsModelComponentGetFunc func(*ProtocolsModelComponent) []byte
 type ProtocolsModelComponentSetFunc func(*ProtocolsModelComponent, []byte) error
 type ProtocolsModelComponentMeaningfulConfigFunc func(*ProtocolsModelComponent, []byte) bool
+type ProtocolsModelComponentRegisterSubscriptionFunc func(*ProtocolsModelComponent, []byte)
+type ProtocolsModelComponentCancelSubscriptionFunc func(*ProtocolsModelComponent)
 
 /*
  * The ProtocolsModelComponent structure is the building block of a
@@ -94,16 +111,20 @@ type ProtocolsModelComponentMeaningfulConfigFunc func(*ProtocolsModelComponent, 
  * to obtain a new instance, setting this as its VCI component model config.
  */
 type ProtocolsModelComponent struct {
-	modelName      string
-	model          vci.Model
-	component      vci.Component
-	configFileName string
-	daemons        map[string]*ProtocolsDaemon
-	checkFunc      ProtocolsModelComponentCheckFunc
-	getFunc        ProtocolsModelComponentGetFunc
-	setFunc        ProtocolsModelComponentSetFunc
-	meanFunc       ProtocolsModelComponentMeaningfulConfigFunc
-	args           *CommonArgs
+	modelName        string
+	model            vci.Model
+	component        vci.Component
+	client           *vci.Client
+	configFileName   string
+	daemons          map[string]*ProtocolsDaemon
+	checkFunc        ProtocolsModelComponentCheckFunc
+	getFunc          ProtocolsModelComponentGetFunc
+	setFunc          ProtocolsModelComponentSetFunc
+	meanFunc         ProtocolsModelComponentMeaningfulConfigFunc
+	registerSubsFunc ProtocolsModelComponentRegisterSubscriptionFunc
+	cancelSubsFunc   ProtocolsModelComponentCancelSubscriptionFunc
+	args             *CommonArgs
+	subscriptions    map[string]*ProtocolsSubscription
 }
 
 func NewProtocolsModelComponent(
@@ -116,13 +137,16 @@ func NewProtocolsModelComponent(
 	pmc.configFileName = configFileName
 	pmc.setFunc = defaultPmcSetFunc
 	pmc.meanFunc = defaultPmcMeanFunc
+	pmc.cancelSubsFunc = defaultPmcCancelSubsFunc
 	pmc.args = ParseCommonArgs()
+	pmc.subscriptions = make(map[string]*ProtocolsSubscription)
 
 	if pmc.GetDaemonConfigFilePath() == pmc.GetSystemConfigFilePath() {
 		panic("Daemon and system config file paths are identical!")
 	}
 
 	pmc.component = vci.NewComponent(componentName)
+	pmc.client = pmc.component.Client()
 	pmc.model = pmc.component.Model(pmc.GetModelName())
 	pmc.model.Config(pmc)
 
@@ -181,6 +205,14 @@ func (pmc *ProtocolsModelComponent) AddDaemon(pd *ProtocolsDaemon) {
 func (pmc *ProtocolsModelComponent) GetDaemon(daemon string) *ProtocolsDaemon {
 	pd, _ := pmc.daemons[daemon]
 	return pd
+}
+
+func (pmc *ProtocolsModelComponent) SetCancelSubsFunction(cancelSubsFunc ProtocolsModelComponentCancelSubscriptionFunc) {
+	pmc.cancelSubsFunc = cancelSubsFunc
+}
+
+func (pmc *ProtocolsModelComponent) SetRegisterSubsFunction(registerSubsFunc ProtocolsModelComponentRegisterSubscriptionFunc) {
+	pmc.registerSubsFunc = registerSubsFunc
 }
 
 /*
@@ -275,9 +307,23 @@ func (pmc *ProtocolsModelComponent) Set(cfg []byte) error {
 	ret_err := NewMultiError()
 
 	/*
+	 * Cancel any existing subscriptions
+	 */
+	if pmc.registerSubsFunc != nil {
+		pmc.cancelSubsFunc(pmc)
+	}
+
+	/*
 	 * Hand off to the Set handler
 	 */
 	ret_err = multierr.Append(ret_err, pmc.setFunc(pmc, conv_cfg))
+
+	/*
+	 * Create subscriptions and subscribe to notifications
+	 */
+	if pmc.registerSubsFunc != nil {
+		pmc.registerSubsFunc(pmc, conv_cfg)
+	}
 
 	/*
 	 * Cache the received system configuration
@@ -367,6 +413,16 @@ func defaultPmcMeanFunc(pmc *ProtocolsModelComponent, cfg []byte) bool {
 	return !IsEmptyConfig(cfg)
 }
 
+func defaultPmcCancelSubsFunc(pmc *ProtocolsModelComponent) {
+	if pmc.registerSubsFunc == nil {
+		return
+	}
+	for key, subscription := range pmc.subscriptions {
+		subscription.SubscriptionObj.Cancel()
+		delete(pmc.subscriptions, key)
+	}
+}
+
 /*
  * Notify the daemon to reload its configuration
  */
@@ -424,6 +480,36 @@ func (pmc *ProtocolsModelComponent) GetSystemConfig() ([]byte, error) {
 	}
 
 	return cfg, nil
+}
+
+/*
+ * Create a subscription, run it, and add it to the Subscriptions map
+ */
+func (pmc *ProtocolsModelComponent) CreateSubscription(namespace string, eventName string, callbackFunction func(in string)) {
+	sub := new(ProtocolsSubscription)
+	sub.Namespace = namespace
+	sub.Event = eventName
+	sub.CallbackFunc = callbackFunction
+	sub.SubscriptionObj = pmc.client.Subscribe(sub.Namespace, sub.Event, sub.CallbackFunc)
+	sub.SubscriptionObj.Run()
+	pmc.subscriptions[sub.Namespace+":"+sub.Event] = sub
+}
+
+/*
+ * Call out to VTYSH executing a command, logs error and returns output.
+ */
+func CallVtysh(cmd string) []byte {
+	var args = []string{"/usr/bin/vtysh", "-c", cmd}
+
+	out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+
+	// If there was some output, return it instead of the generic error
+	if err != nil && len(out) > 0 {
+		err = errors.New(strings.Replace(string(out), "%", "%%", -1))
+		log.Errorln(err)
+	}
+
+	return out
 }
 
 /*
