@@ -8,6 +8,9 @@ module vyatta-protocols-interface-validation-mpls-v1 {
 	import vyatta-interfaces-dataplane-v1 {
 		prefix if-dataplane;
 	}
+	import vyatta-interfaces-bonding-v1 {
+		prefix if-bonding;
+	}
 	import configd-v1 {
 		prefix configd;
 	}
@@ -20,7 +23,7 @@ module vyatta-protocols-interface-validation-mpls-v1 {
 		 Web: www.att.com";
 
 	description
-		"Copyright (c) 2018-2019, AT&T Intellectual Property.
+		"Copyright (c) 2018-2020, AT&T Intellectual Property.
 		 All rights reserved.
 
 		 Copyright (c) 2016 by Brocade Communications Systems, Inc.
@@ -57,6 +60,9 @@ module vyatta-protocols-interface-validation-mpls-v1 {
 
 		 The YANG module package for vyatta-protocols-interface-validation-mpls-v1";
 
+	revision 2020-10-23 {
+		description "Allow bonding interfaces as well as dataplane interfaces";
+	}
 	revision 2018-11-14 {
 		description "Update organization, contact, description";
 	}
@@ -65,7 +71,7 @@ module vyatta-protocols-interface-validation-mpls-v1 {
 	}
 
 	grouping interface-mpls {
-		configd:allowed "vyatta-interfaces.pl --show=dataplane";
+		configd:allowed "vyatta-interfaces.pl --show=dataplane,bonding";
 		leaf interface {
 			description "Interface which supports mpls";
 			type string {
@@ -73,7 +79,10 @@ module vyatta-protocols-interface-validation-mpls-v1 {
 			}
 			must  "(current() = /if:interfaces/if-dataplane:dataplane/if-dataplane:tagnode)"
 				+"or (substring-after(current(), '.') = /if:interfaces/if-dataplane:dataplane"
-				+"[if-dataplane:tagnode = substring-before(current(), '.')]/if-dataplane:vif/if-dataplane:tagnode)" {
+				+"[if-dataplane:tagnode = substring-before(current(), '.')]/if-dataplane:vif/if-dataplane:tagnode)"
+				+"or (current() = /if:interfaces/if-bonding:bonding/if-bonding:tagnode)"
+				+"or (substring-after(current(), '.') = /if:interfaces/if-bonding:bonding"
+				+"[if-bonding:tagnode = substring-before(current(), '.')]/if-bonding:vif/if-bonding:tagnode)" {
 				error-message "Interface name must refer to an existing mpls-capable interface name";
 			}
 		}
