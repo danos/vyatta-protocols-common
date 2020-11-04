@@ -1,3 +1,10 @@
+vyatta-protocols-common (1.15.0) unstable; urgency=medium
+
+  [ Anthony Dempsey ]
+  * Infra update to allow subscription to VCI events
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Wed, 04 Nov 2020 11:08:15 +0000
+
 vyatta-protocols-common (1.14.2) unstable; urgency=medium
 
   [ Robert Shearman ]
