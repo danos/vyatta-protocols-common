@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020, AT&T Intellectual Property.
+// Copyright (c) 2017-2021, AT&T Intellectual Property.
 // All rights reserved.
 //
 // SPDX-License-Identifier: MPL-2.0
@@ -501,12 +501,21 @@ func (pmc *ProtocolsModelComponent) CreateSubscription(namespace string, eventNa
 func CallVtysh(cmd string) []byte {
 	var args = []string{"/usr/bin/vtysh", "-c", cmd}
 
-	out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+	out := ExecCmd(args)
 
-	// If there was some output, return it instead of the generic error
+	return out
+}
+
+/*
+ * ExecCmd - Execute a command, log errors and returns output.
+ */
+ func ExecCmd(cmd []string) []byte {
+	out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
+
+	//If there was some output, return it instead of the generic error
 	if err != nil && len(out) > 0 {
 		err = errors.New(strings.Replace(string(out), "%", "%%", -1))
-		log.Errorln(err)
+		log.Error(err)
 	}
 
 	return out
