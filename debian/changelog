@@ -1,3 +1,9 @@
+vyatta-protocols-common (1.15.1) unstable; urgency=medium
+
+  * Infra/Add ability to call to the shell
+
+ -- Anthony Dempsey <anthony.dempsey@intl.att.com>  Fri, 29 Jan 2021 16:01:37 +0000
+
 vyatta-protocols-common (1.15.0) unstable; urgency=medium
 
   [ Anthony Dempsey ]
