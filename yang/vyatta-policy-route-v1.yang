@@ -975,6 +975,13 @@ module vyatta-policy-route-v1 {
 							description "IS-IS level";
 							configd:help "IS-IS level";
 						}
+						leaf src {
+							type union {
+								type types:ipv4-address;
+								type types:ipv6-address;
+							}
+							configd:help "Preferred source address";
+						}
 					}
 					leaf continue {
 						type uint32 {
@@ -1051,6 +1058,10 @@ module vyatta-policy-route-v1 {
 								}
 								configd:help "Source protocol to be matched";
 							}
+						}
+						leaf local-preference {
+							type uint32;
+							configd:help "Border Gateway Protocol (BGP) local preference attribute";
 						}
 						leaf origin {
 							type enumeration {
