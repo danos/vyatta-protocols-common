@@ -1,3 +1,11 @@
+vyatta-protocols-common (1.16.0) unstable; urgency=medium
+
+  [ Nicholas Brown ]
+  * dh-systemd is part of debhelper
+  * 'go tool vet' now 'go vet'
+
+ -- Mark Gillott <mgillott@vyatta.att-mail.com>  Tue, 16 Mar 2021 09:38:23 +0000
+
 vyatta-protocols-common (1.15.1) unstable; urgency=medium
 
   * Infra/Add ability to call to the shell
